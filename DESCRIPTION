@@ -1,0 +1,16 @@
+Package: amlrGlider
+Title: AMLR Glider Data Processing
+Version: 0.0.0.9000
+Authors@R: 
+    person("Sam", "Woodman", email = "sam.woodman@noaa.gov", role = c("aut", "cre"), comment = c(ORCID = "0000-0001-6071-8186"))
+Description: Processes AERD AMLR glider data. Specifically, it contains functions for 
+    converting the output AMLR glider L1 and L2 data to the IOOS NGDAC format for submission to NGDAC.
+Imports: 
+    dplyr,
+    ncdf4
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.1
+
