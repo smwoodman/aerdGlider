@@ -1,24 +1,63 @@
-#' Convert
+#' Convert AMLR L1 and L2 glider data to NGDAC format v2.0
 #'
-#' Convert AMLR glider data to NGDAC format
+#' Convert AMLR L1 and L2 glider data to NGDAC format v2.0
 #'
 #' @param file.l1 file path for AMLR L1 nc file
 #' @param file.l2 file path for AMLR L2 nc file
 #' @param path.out file path to folder where output nc files will be created
 #' @param glider.name character; name of glider
+#' @param ... arguments passed to \code{\link{amlr_ngdac_nc_put}}
 #'
-#' @details
+#' @details This is the top-level function for converting AMLR glider data to NGDAC format v2.0,
+#'   as described at the url below. The AMLR glider data is the output from
+#'   \url{https://github.com/socib/glider_toolbox}, and thus consists of
+#'   an L1 and L2 file containing time series (trajectory) and profile data, respectively.
+#'   Data from both of these files is used to create the NGDAC-formatted nc files.
 #'
-#' @return
+#'   In addition to the variables time series variables listed at the NGDAC website,
+#'   this function writes the following variables to the output nc files:
+#'   TODO
 #'
-#' @seealso
+#' @return \code{TRUE} if the function ran successfully.
+#'   This functions writes one nc file per profile to the folder specified by \code{path.out}
+#'
+#' @seealso \url{https://ioos.github.io/ioosngdac/ngdac-netcdf-file-format-version-2.html}
+#'
+#'   \url{http://cfconventions.org/Data/cf-standard-names/73/build/cf-standard-name-table.html}
 #'
 #' @examples
 #'
+#' \dontrun{
+#' amlr_ngdac_convert(
+#'   file.l1 = "AERD_18_19/dep100_amlr01_sgg3_L1_2018-12-06_data_rt.nc",
+#'   file.l2 = "AERD_18_19/dep100_amlr01_sgg3_L2_2018-12-06_data_rt.nc",
+#'   file.out.path = "Output/dep100_amlr01_sgg3/",
+#'   glider.name = "amlr01"
+#' )
+#' }
+#'
 #' @export
-amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name) {
+amlr_ngdac_convert <- function(file.l1, file.l2, path.out, glider.name, ...) {
+  stopifnot(
+    inherits(file.l1, "character"),
+    inherits(file.l2, "character"),
+    inherits(file.out.path, "character"),
+    inherits(glider.name, "character"),
+    file.exists(file.l1),
+    file.exists(file.l2),
+    dir.exists(file.out.path)
+  )
 
-  stopifnot(require(ncdf4), require(dplyr))
+  if (!grepl("L1", file.l1))
+    warning("The phrase 'L1' is not in the L1 file name. Provided L1 file name (file.l1):\n",
+            file.l1, immediate. = TRUE)
+  if (!grepl("L2", file.l2))
+    warning("The phrase 'L2' is not in the L2 file name. Provided L2 file name (file.l2):\n",
+            file.l2, immediate. = TRUE)
+
+  if (!grepl("amlr", glider.name))
+    warning("'amlr' is not in the glider name", immediate. = TRUE)
+
 
   #----------------------------------------------------------------------------
   ### Extract profile-level data from L2 file
@@ -26,13 +65,6 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name) {
   x2 <- nc_open(file.l2)
 
   # TODO: add checks for formatting, etc. Hopefully there is some attribute to check as well
-
-  # sink("dep100_amlr01_sgg3_L2_2018-12-06_data_rt.txt")
-  # print(x2)
-  # sink()
-  #
-  # names(x2$var)
-  # names(x2$dim)
 
   x2.time <- as.POSIXct(ncvar_get(x2, "time"), origin = "1970-01-01")
   x2.lat  <- ncvar_get(x2, "latitude")
@@ -132,13 +164,12 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name) {
 
     #------------------------------------------------------
     # Dimensions
+    time.unit <- "seconds since 1970-01-01T00:00:00Z"
     y.dim.time <- ncdim_def(
-      "time", units = "seconds since 1970-01-01T00:00:00Z", vals = as.numeric(ts.curr$time),
-      unlim = TRUE, calendar = "gregorian", longname = "Time"
+      "time", units = time.unit, vals = as.numeric(ts.curr$time), unlim = TRUE, calendar = "gregorian"
     )
     y.dim.traj <- ncdim_def(
-      "traj_strlen", units = "", vals = seq_len(14+nchar(glider.name)),
-      create_dimvar = FALSE
+      "traj_strlen", units = "", vals = seq_len(14+nchar(glider.name)), create_dimvar = FALSE
     )
 
 
@@ -146,59 +177,62 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name) {
     # Define variables - cleaner to do this as list so the list can just be passed to nc_create()
     vars.list <- list(
       #Data variables with dimensions
-      ncvar_def("trajectory", units = "", dim = y.dim.traj, prec = "char", longname = "Trajectory/Deployment Name"),
-      ncvar_def("lat", units = "degrees_north", dim = y.dim.time, missval = -999, longname = "Latitude", prec = "double"),
-      ncvar_def("lon", units = "degrees_east", dim = y.dim.time, missval = -999, longname = "Longitude", prec = "double"),
-      ncvar_def("pressure", units = "dbar", dim = y.dim.time, missval = -999, longname = "Pressure", prec = "double"),
-      ncvar_def("depth", units = "m", dim = y.dim.time, missval = -999, longname = "Depth", prec = "double"),
-      ncvar_def("temperature", units = "Celsius", dim = y.dim.time, missval = -999, longname = "Temperature", prec = "double"),
-      ncvar_def("conductivity", units = "S m-1", dim = y.dim.time, missval = -999, longname = "Conductivity", prec = "double"),
-      ncvar_def("salinity", units = "PSU", dim = y.dim.time, missval = -999, longname = "Salinity", prec = "double"),
-      ncvar_def("density", units = "kg m-3", dim = y.dim.time, missval = -999, longname = "Density", prec = "double"),
+      ncvar_def("trajectory", units = "", dim = y.dim.traj, prec = "char"),
+      ncvar_def("lat", units = "degrees_north", dim = y.dim.time, missval = -999, prec = "double"),
+      ncvar_def("lon", units = "degrees_east", dim = y.dim.time, missval = -999, prec = "double"),
+      ncvar_def("pressure", units = "dbar", dim = y.dim.time, missval = -999, prec = "double"),
+      ncvar_def("depth", units = "m", dim = y.dim.time, missval = -999, prec = "double"),
+      ncvar_def("temperature", units = "Celsius", dim = y.dim.time, missval = -999, prec = "double"),
+      ncvar_def("conductivity", units = "S m-1", dim = y.dim.time, missval = -999, prec = "double"),
+      ncvar_def("salinity", units = "PSU", dim = y.dim.time, missval = -999, prec = "double"),
+      ncvar_def("density", units = "kg m-3", dim = y.dim.time, missval = -999, prec = "double"),
 
       #Dimensionless profile variables
-      ncvar_def("profile_id", units = "", dim = list(), missval = -999, longname = "Profile ID", prec = "integer"),
-      ncvar_def("profile_time", units = "seconds since 1970-01-01T00:00:00Z", dim = list(), missval = -999,
-                longname = "Profile Center Time", prec = "double"),
-      ncvar_def("profile_lat", units = "degrees_north", dim = list(), missval = -999, longname = "Profile Center Latitude", prec = "double"),
-      ncvar_def("profile_lon", units = "degrees_east", dim = list(), missval = -999, longname = "Profile Center Longitude", prec = "double"),
-      ncvar_def("time_uv", units = "seconds since 1970-01-01T00:00:00Z", dim = list(), missval = -999,
-                longname = "Depth-Averaged Time", prec = "double"),
-      ncvar_def("lat_uv", units = "degrees_north", dim = list(), missval = -999, longname = "Depth-Averaged Latitude", prec = "double"),
-      ncvar_def("lon_uv", units = "degrees_east", dim = list(), missval = -999, longname = "Depth-Averaged Longitude", prec = "double"),
-      ncvar_def("u", units = "m s-1", dim = list(), missval = -999, longname = "Depth-Averaged Eastward Sea Water Velocity", prec = "double"),
-      ncvar_def("v", units = "m s-1", dim = list(), missval = -999, longname = "Depth-Averaged Northward Sea Water Velocity", prec = "double"),
+      ncvar_def("profile_id", units = "", dim = list(), missval = -999, prec = "integer"),
+      ncvar_def("profile_time", units = time.unit, dim = list(), missval = -999, prec = "double"),
+      ncvar_def("profile_lat", units = "degrees_north", dim = list(), missval = -999, prec = "double"),
+      ncvar_def("profile_lon", units = "degrees_east", dim = list(), missval = -999, prec = "double"),
+      ncvar_def("time_uv", units = time.unit, dim = list(), missval = -999, prec = "double"),
+      ncvar_def("lat_uv", units = "degrees_north", dim = list(), missval = -999, prec = "double"),
+      ncvar_def("lon_uv", units = "degrees_east", dim = list(), missval = -999, prec = "double"),
+      ncvar_def("u", units = "m s-1", dim = list(), missval = -999, prec = "double"),
+      ncvar_def("v", units = "m s-1", dim = list(), missval = -999, prec = "double"),
       ncvar_def("platform", units = "", dim = list(), missval = -999, prec = "integer"),
       ncvar_def("instrument_ctd", units = "", dim = list(), missval = -999, prec = "integer"),
 
       #QC variables
-      ncvar_def("time_qc", units = "", dim = y.dim.time, missval = -127, longname = "time Quality Flag", prec = "byte"),
-      ncvar_def("lat_qc", units = "", dim = y.dim.time, missval = -127, longname = "lat Quality Flag", prec = "byte"),
-      ncvar_def("lon_qc", units = "", dim = y.dim.time, missval = -127, longname = "lon Quality Flag", prec = "byte"),
-      ncvar_def("pressure_qc", units = "", dim = y.dim.time, missval = -127, longname = "pressure Quality Flag", prec = "byte"),
-      ncvar_def("depth_qc", units = "", dim = y.dim.time, missval = -127, longname = "depth Quality Flag", prec = "byte"),
-      ncvar_def("temperature_qc", units = "", dim = y.dim.time, missval = -127, longname = "temperature Quality Flag", prec = "byte"),
-      ncvar_def("conductivity_qc", units = "", dim = y.dim.time, missval = -127, longname = "conductivity Quality Flag", prec = "byte"),
-      ncvar_def("salinity_qc", units = "", dim = y.dim.time, missval = -127, longname = "salinity Quality Flag", prec = "byte"),
-      ncvar_def("density_qc", units = "", dim = y.dim.time, missval = -127, longname = "density Quality Flag", prec = "byte"),
-      ncvar_def("profile_time_qc", units = "", dim = list(), missval = -127, longname = "profile_time Quality Flag", prec = "byte"),
-      ncvar_def("profile_lat_qc", units = "", dim = list(), missval = -127, longname = "profile_lat Quality Flag", prec = "byte"),
-      ncvar_def("profile_lon_qc", units = "", dim = list(), missval = -127, longname = "profile_lon Quality Flag", prec = "byte"),
-      ncvar_def("time_uv_qc", units = "", dim = list(), missval = -127, longname = "time_uv Quality Flag", prec = "byte"),
-      ncvar_def("lat_uv_qc", units = "", dim = list(), missval = -127, longname = "lat_uv Quality Flag", prec = "byte"),
-      ncvar_def("lon_uv_qc", units = "", dim = list(), missval = -127, longname = "lon_uv Quality Flag", prec = "byte"),
-      ncvar_def("u_qc", units = "", dim = list(), missval = -127, longname = "u Quality Flag", prec = "byte"),
-      ncvar_def("v_qc", units = "", dim = list(), missval = -127, longname = "v Quality Flag", prec = "byte")
+      ncvar_def("time_qc", units = "", dim = y.dim.time, missval = -127, prec = "byte"),
+      ncvar_def("lat_qc", units = "", dim = y.dim.time, missval = -127, prec = "byte"),
+      ncvar_def("lon_qc", units = "", dim = y.dim.time, missval = -127, prec = "byte"),
+      ncvar_def("pressure_qc", units = "", dim = y.dim.time, missval = -127, prec = "byte"),
+      ncvar_def("depth_qc", units = "", dim = y.dim.time, missval = -127, prec = "byte"),
+      ncvar_def("temperature_qc", units = "", dim = y.dim.time, missval = -127, prec = "byte"),
+      ncvar_def("conductivity_qc", units = "", dim = y.dim.time, missval = -127, prec = "byte"),
+      ncvar_def("salinity_qc", units = "", dim = y.dim.time, missval = -127, prec = "byte"),
+      ncvar_def("density_qc", units = "", dim = y.dim.time, missval = -127, prec = "byte"),
+      ncvar_def("profile_time_qc", units = "", dim = list(), missval = -127, prec = "byte"),
+      ncvar_def("profile_lat_qc", units = "", dim = list(), missval = -127, prec = "byte"),
+      ncvar_def("profile_lon_qc", units = "", dim = list(), missval = -127, prec = "byte"),
+      ncvar_def("time_uv_qc", units = "", dim = list(), missval = -127, prec = "byte"),
+      ncvar_def("lat_uv_qc", units = "", dim = list(), missval = -127, prec = "byte"),
+      ncvar_def("lon_uv_qc", units = "", dim = list(), missval = -127, prec = "byte"),
+      ncvar_def("u_qc", units = "", dim = list(), missval = -127, prec = "byte"),
+      ncvar_def("v_qc", units = "", dim = list(), missval = -127, prec = "byte")
     )
 
 
     #------------------------------------------------------
     # Write file and add 1) variable data and attributes and 2) global attributes
-    # browser()
-
     ncnew <- nc_create(y.name, vars = vars.list)
-    ngdac_nc_put(ncnew, profile.curr, ts.curr, glider.name)
-    ncnew
+    # nc_close(ncnew)
+    # amlr_ngdac_nc_put(ncnew.path = y.name, profile.curr, ts.curr, glider.name, ...)
+
+    # tryCatch({
+    amlr_ngdac_nc_put(ncnew = ncnew, profile.curr, ts.curr, glider.name, ...)
+    # }, error = nc_close(ncnew))
+    # ncnew
     nc_close(ncnew)
   }
+
+  TRUE
 }
