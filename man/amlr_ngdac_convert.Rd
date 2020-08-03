@@ -4,14 +4,14 @@
 \alias{amlr_ngdac_convert}
 \title{Convert AMLR L1 and L2 glider data to NGDAC format v2.0}
 \usage{
-amlr_ngdac_convert(file.l1, file.l2, path.out, glider.name, ...)
+amlr_ngdac_convert(file.l1, file.l2, file.out.path, glider.name, ...)
 }
 \arguments{
 \item{file.l1}{file path for AMLR L1 nc file}
 
 \item{file.l2}{file path for AMLR L2 nc file}
 
-\item{path.out}{file path to folder where output nc files will be created}
+\item{file.out.path}{file path to folder where output nc files will be created}
 
 \item{glider.name}{character; name of glider}
 
@@ -19,7 +19,7 @@ amlr_ngdac_convert(file.l1, file.l2, path.out, glider.name, ...)
 }
 \value{
 \code{TRUE} if the function ran successfully.
-This functions writes one nc file per profile to the folder specified by \code{path.out}
+This functions writes one nc file per profile to the folder specified by \code{file.out.path}
 }
 \description{
 Convert AMLR L1 and L2 glider data to NGDAC format v2.0

@@ -4,7 +4,7 @@
 #'
 #' @param file.l1 file path for AMLR L1 nc file
 #' @param file.l2 file path for AMLR L2 nc file
-#' @param path.out file path to folder where output nc files will be created
+#' @param file.out.path file path to folder where output nc files will be created
 #' @param glider.name character; name of glider
 #' @param ... arguments passed to \code{\link{amlr_ngdac_nc_put}}
 #'
@@ -19,7 +19,7 @@
 #'   TODO
 #'
 #' @return \code{TRUE} if the function ran successfully.
-#'   This functions writes one nc file per profile to the folder specified by \code{path.out}
+#'   This functions writes one nc file per profile to the folder specified by \code{file.out.path}
 #'
 #' @seealso \url{https://ioos.github.io/ioosngdac/ngdac-netcdf-file-format-version-2.html}
 #'
@@ -37,7 +37,7 @@
 #' }
 #'
 #' @export
-amlr_ngdac_convert <- function(file.l1, file.l2, path.out, glider.name, ...) {
+amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name, ...) {
   stopifnot(
     inherits(file.l1, "character"),
     inherits(file.l2, "character"),
