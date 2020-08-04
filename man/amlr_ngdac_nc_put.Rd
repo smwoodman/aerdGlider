@@ -6,17 +6,24 @@
 \usage{
 amlr_ngdac_nc_put(
   ncnew,
+  x1,
+  x2,
   profile.curr,
   ts.curr,
   glider.name,
   wmo.id,
-  ctd.calib.date,
-  ctd.calib.date.factory,
-  ctd.serial.num
+  ctd.info,
+  optode.info,
+  flbbcd.info
 )
 }
 \arguments{
-\item{ncnew}{nc file to which to add data and attributes; output of \code{nc_create}}
+\item{ncnew}{open nc file to which to add data and attributes;
+output of \code{nc_create}}
+
+\item{x1}{open L1 nc file}
+
+\item{x2}{open L2 nc file}
 
 \item{profile.curr}{list of data extracted from AERD L2 file.
 This list must contain the following named components: TODO}
@@ -28,11 +35,14 @@ This list must contain the following named components: TODO}
 
 \item{wmo.id}{character; the WMO ID of the glider/deployment}
 
-\item{ctd.calib.date}{Date; date of CTD instrument calibration}
+\item{ctd.info}{list; CTD information. Must contain the following named elements:
+calib_date (Date), calib_date_factory (Date), and serial_num (character)}
 
-\item{ctd.calib.date.factory}{Date; date of CTD instrument factory calibration}
+\item{optode.info}{list; oxygen optode information. Must contain the following named elements:
+calib_date (Date), calib_date_factory (Date), and serial_num (character)}
 
-\item{ctd.serial.num}{character; serial number of CTD instrument}
+\item{flbbcd.info}{list; flbbcd information. Must contain the following named elements:
+calib_date (Date), calib_date_factory (Date), and serial_num (character)}
 }
 \value{
 \code{TRUE} if all code is executed without errors

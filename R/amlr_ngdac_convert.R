@@ -6,7 +6,7 @@
 #' @param file.l2 file path for AMLR L2 nc file
 #' @param file.out.path file path to folder where output nc files will be created
 #' @param glider.name character; name of glider
-#' @param ... arguments passed to \code{\link{amlr_ngdac_nc_put}}
+#' @param ... arguments passed through to \code{\link{amlr_ngdac_nc_put}}
 #'
 #' @details This is the top-level function for converting AMLR glider data to NGDAC format v2.0,
 #'   as described at the url below. The AMLR glider data is the output from
@@ -16,7 +16,9 @@
 #'
 #'   In addition to the variables time series variables listed at the NGDAC website,
 #'   this function writes the following variables to the output nc files:
-#'   TODO
+#'   oxygen_saturation, oxygen_concentration, cdom, chlorophyll,
+#'   backscatter, radiation_wavelength,
+#'   instrument_optode, and instrument_flbbcd
 #'
 #' @return \code{TRUE} if the function ran successfully.
 #'   This functions writes one nc file per profile to the folder specified by \code{file.out.path}
@@ -71,8 +73,6 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name, ...
   x2.lon  <- ncvar_get(x2, "longitude")
   x2.prof <- ncvar_get(x2, "profile_index")
 
-  nc_close(x2)
-
   profile.list <- lapply(seq_along(x2.prof), function(prof.idx) {
     list(
       time      = x2.time[prof.idx],
@@ -87,6 +87,23 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name, ...
   ### Extract time series data from L1 file
   message("Extracting L1 data")
   x1 <- nc_open(file.l1)
+  # x1.vars.names <- c(
+  #   "profile_index", "time", "depth", "latitude", "longitude", "pressure",
+  #   "temperature", "conductivity", "salinity", "density",
+  #   "water_velocity_eastward", "water_velocity_northward",
+  #   "oxygen_concentration", "oxygen_saturation", "cdom", "chlorophyll",
+  #   "backscatter_700"
+  # )
+  #
+  # x1.vars.list <- lapply(x1.vars.names, function(i) {
+  #   if (i == "time") {
+  #     as.POSIXct(ncvar_get(x1, "time"), origin = "1970-01-01")
+  #   } else {
+  #     ncvar_get(x1, i)
+  #   }
+  # })
+  # names(x1.vars.list) <- x1.vars.names
+
 
   x1.prof <- ncvar_get(x1, "profile_index")
   x1.time <- as.POSIXct(ncvar_get(x1, "time"), origin = "1970-01-01")
@@ -100,18 +117,20 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name, ...
   x1.dens <- ncvar_get(x1, "density")
   x1.u    <- ncvar_get(x1, "water_velocity_eastward")
   x1.v    <- ncvar_get(x1, "water_velocity_northward")
+  x1.oxy.sat <- ncvar_get(x1, "oxygen_saturation")
+  x1.oxy.con <- ncvar_get(x1, "oxygen_concentration")
+  x1.cdom  <- ncvar_get(x1, "cdom")
+  x1.chlor <- ncvar_get(x1, "chlorophyll")
+  x1.back  <- ncvar_get(x1, "backscatter_700")
 
-  nc_close(x1)
 
   # Check that profile indices match between L1 and L2 files
   if (!(all(x2.prof %in% x1.prof) & all(x1.prof[x1.prof %% 1 == 0] %in% x2.prof)))
     stop("The profile indices of the L1 and L2 files do not match - ",
          "did you specify files from the same deployment?")
 
-  # TODO: use parallel package here
   ts.list <- lapply(seq_along(x2.prof), function(prof.val) {
     prof.idx <- which(x1.prof == prof.val)
-
     list(
       time         = x1.time[prof.idx],
       depth        = x1.dep[prof.idx],
@@ -124,7 +143,12 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name, ...
       density      = x1.dens[prof.idx],
       profile      = x1.prof[prof.idx],
       u            = x1.u[prof.idx],
-      v            = x1.v[prof.idx]
+      v            = x1.v[prof.idx],
+      oxygen_saturation    = x1.oxy.sat[prof.idx],
+      oxygen_concentration = x1.oxy.con[prof.idx],
+      cdom            = x1.cdom[prof.idx],
+      chlorophyll     = x1.chlor[prof.idx],
+      backscatter_700 = x1.back[prof.idx]
     )
   })
 
@@ -164,6 +188,7 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name, ...
 
     #------------------------------------------------------
     # Dimensions
+
     time.unit <- "seconds since 1970-01-01T00:00:00Z"
     y.dim.time <- ncdim_def(
       "time", units = time.unit, vals = as.numeric(ts.curr$time), unlim = TRUE, calendar = "gregorian"
@@ -175,30 +200,41 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name, ...
 
     #------------------------------------------------------
     # Define variables - cleaner to do this as list so the list can just be passed to nc_create()
+    #   long_name is set in amlr_ngdac_nc_put() for consistency
     vars.list <- list(
       #Data variables with dimensions
       ncvar_def("trajectory", units = "", dim = y.dim.traj, prec = "char"),
-      ncvar_def("lat", units = "degrees_north", dim = y.dim.time, missval = -999, prec = "double"),
-      ncvar_def("lon", units = "degrees_east", dim = y.dim.time, missval = -999, prec = "double"),
-      ncvar_def("pressure", units = "dbar", dim = y.dim.time, missval = -999, prec = "double"),
-      ncvar_def("depth", units = "m", dim = y.dim.time, missval = -999, prec = "double"),
-      ncvar_def("temperature", units = "Celsius", dim = y.dim.time, missval = -999, prec = "double"),
-      ncvar_def("conductivity", units = "S m-1", dim = y.dim.time, missval = -999, prec = "double"),
-      ncvar_def("salinity", units = "PSU", dim = y.dim.time, missval = -999, prec = "double"),
-      ncvar_def("density", units = "kg m-3", dim = y.dim.time, missval = -999, prec = "double"),
+      ncvar_def("lat", units = ncatt_get(x1, "latitude")$units, dim = y.dim.time, missval = -999, prec = "double"),
+      ncvar_def("lon", units = ncatt_get(x1, "longitude")$units, dim = y.dim.time, missval = -999, prec = "double"),
+      ncvar_def("pressure", units = ncatt_get(x1, "pressure")$units, dim = y.dim.time, missval = -999, prec = "double"),
+      ncvar_def("depth", units = ncatt_get(x1, "depth")$units, dim = y.dim.time, missval = -999, prec = "double"),
+      ncvar_def("temperature", units = ncatt_get(x1, "temperature")$units, dim = y.dim.time, missval = -999, prec = "double"),
+      ncvar_def("conductivity", units = ncatt_get(x1, "conductivity")$units, dim = y.dim.time, missval = -999, prec = "double"),
+      ncvar_def("salinity", units = ncatt_get(x1, "salinity")$units, dim = y.dim.time, missval = -999, prec = "double"),
+      # ^ TODO change units to 1
+      ncvar_def("density", units = ncatt_get(x1, "density")$units, dim = y.dim.time, missval = -999, prec = "double"),
+
+      ncvar_def("oxygen_saturation", units = "percent", dim = y.dim.time, missval = -999, prec = "double"),
+      ncvar_def("oxygen_concentration", units = ncatt_get(x1, "oxygen_concentration")$units, dim = y.dim.time, missval = -999, prec = "double"),
+      ncvar_def("cdom", units = ncatt_get(x1, "cdom")$units, dim = y.dim.time, missval = -999, prec = "double"),
+      ncvar_def("chlorophyll", units = ncatt_get(x1, "chlorophyll")$units, dim = y.dim.time, missval = -999, prec = "double"),
+      ncvar_def("radiation_wavelength", units = "nm", dim = y.dim.time, missval = -999, prec = "double"),
+      ncvar_def("backscatter", units = "m-1", dim = y.dim.time, missval = -999, prec = "double"),
 
       #Dimensionless profile variables
       ncvar_def("profile_id", units = "", dim = list(), missval = -999, prec = "integer"),
       ncvar_def("profile_time", units = time.unit, dim = list(), missval = -999, prec = "double"),
-      ncvar_def("profile_lat", units = "degrees_north", dim = list(), missval = -999, prec = "double"),
-      ncvar_def("profile_lon", units = "degrees_east", dim = list(), missval = -999, prec = "double"),
+      ncvar_def("profile_lat", ncatt_get(x2, "latitude")$units, dim = list(), missval = -999, prec = "double"),
+      ncvar_def("profile_lon", ncatt_get(x2, "longitude")$units, dim = list(), missval = -999, prec = "double"),
       ncvar_def("time_uv", units = time.unit, dim = list(), missval = -999, prec = "double"),
-      ncvar_def("lat_uv", units = "degrees_north", dim = list(), missval = -999, prec = "double"),
-      ncvar_def("lon_uv", units = "degrees_east", dim = list(), missval = -999, prec = "double"),
+      ncvar_def("lat_uv", units = ncatt_get(x1, "latitude")$units, dim = list(), missval = -999, prec = "double"),
+      ncvar_def("lon_uv", units = ncatt_get(x1, "longitude")$units, dim = list(), missval = -999, prec = "double"),
       ncvar_def("u", units = "m s-1", dim = list(), missval = -999, prec = "double"),
       ncvar_def("v", units = "m s-1", dim = list(), missval = -999, prec = "double"),
       ncvar_def("platform", units = "", dim = list(), missval = -999, prec = "integer"),
       ncvar_def("instrument_ctd", units = "", dim = list(), missval = -999, prec = "integer"),
+      ncvar_def("instrument_optode", units = "", dim = list(), missval = -999, prec = "integer"),
+      ncvar_def("instrument_flbbcd", units = "", dim = list(), missval = -999, prec = "integer"),
 
       #QC variables
       ncvar_def("time_qc", units = "", dim = y.dim.time, missval = -127, prec = "byte"),
@@ -210,6 +246,8 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name, ...
       ncvar_def("conductivity_qc", units = "", dim = y.dim.time, missval = -127, prec = "byte"),
       ncvar_def("salinity_qc", units = "", dim = y.dim.time, missval = -127, prec = "byte"),
       ncvar_def("density_qc", units = "", dim = y.dim.time, missval = -127, prec = "byte"),
+      # ncvar_def("oxygen_saturation_qc", units = "", dim = y.dim.time, missval = -127, prec = "byte"),
+
       ncvar_def("profile_time_qc", units = "", dim = list(), missval = -127, prec = "byte"),
       ncvar_def("profile_lat_qc", units = "", dim = list(), missval = -127, prec = "byte"),
       ncvar_def("profile_lon_qc", units = "", dim = list(), missval = -127, prec = "byte"),
@@ -224,15 +262,18 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name, ...
     #------------------------------------------------------
     # Write file and add 1) variable data and attributes and 2) global attributes
     ncnew <- nc_create(y.name, vars = vars.list)
-    # nc_close(ncnew)
-    # amlr_ngdac_nc_put(ncnew.path = y.name, profile.curr, ts.curr, glider.name, ...)
 
-    # tryCatch({
-    amlr_ngdac_nc_put(ncnew = ncnew, profile.curr, ts.curr, glider.name, ...)
-    # }, error = nc_close(ncnew))
-    # ncnew
-    nc_close(ncnew)
+    tryCatch({
+      amlr_ngdac_nc_put(
+        ncnew = ncnew, x1 = x1, x2 = x2,
+        profile.curr = profile.curr, ts.curr = ts.curr,
+        glider.name = glider.name, ...
+      )
+    }, finally = nc_close(ncnew))
   }
+
+  nc_close(x1)
+  nc_close(x2)
 
   TRUE
 }

@@ -15,7 +15,7 @@ amlr_ngdac_convert(file.l1, file.l2, file.out.path, glider.name, ...)
 
 \item{glider.name}{character; name of glider}
 
-\item{...}{arguments passed to \code{\link{amlr_ngdac_nc_put}}}
+\item{...}{arguments passed through to \code{\link{amlr_ngdac_nc_put}}}
 }
 \value{
 \code{TRUE} if the function ran successfully.
@@ -33,7 +33,9 @@ Data from both of these files is used to create the NGDAC-formatted nc files.
 
 In addition to the variables time series variables listed at the NGDAC website,
 this function writes the following variables to the output nc files:
-TODO
+oxygen_saturation, oxygen_concentration, cdom, chlorophyll,
+backscatter, radiation_wavelength,
+instrument_optode, and instrument_flbbcd
 }
 \examples{
 

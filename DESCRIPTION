@@ -7,7 +7,8 @@ Description: Processes AERD AMLR glider data. Specifically, it contains function
     converting the output AMLR glider L1 and L2 data to the IOOS NGDAC format for submission to NGDAC.
 Imports: 
     dplyr,
-    ncdf4
+    ncdf4, 
+    parallel
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
