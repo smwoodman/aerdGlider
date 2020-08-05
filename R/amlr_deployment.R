@@ -1,6 +1,6 @@
-#' Extract deployment location
+#' Extract deployment information
 #'
-#' Extract deployment location from AERD L1 data
+#' Extract deployment time and location from AERD L1 data
 #'
 #' @param file.l1 file path for AMLR L1 nc file
 #' @param n numeric; number of lat/lon positions to print. Default is 1
@@ -8,15 +8,18 @@
 #'   removed from the front of the lat/lon data.
 #'  Default is \code{TRUE}
 #'
-#' @details The purpose of this function is to extract the first one or more
-#'   recorded positions to determine the approximate deployment location.
-#'   This function extracts data for the variables 'latitude' and 'longitude'
-#'   from \code{file.l1}. \code{file.l1} is expected to be an AMLR L1 file.
+#' @details The purpose of this function is to extract and print the deployment time and
+#'   position for \code{file.l1}, which is expected to be an AMLR L1 file.
+#'   This deployment info is 1) the minimum value in the 'time' variable and
+#'   2) the first one or more recorded positions to determine the approximate deployment location.
+#'   For positions, this function extracts data for the variables 'latitude' and 'longitude'.
 #'   For this function, 'front' (e.g. front rows with \code{NA} lat/lon data)
 #'   means before the first record with non-\code{NA} lat and lon data.
 #'
-#' @return Data frame with 'lat' and 'lon' columns that contains the first \code{n} rows
+#' @return A named list of 1) the minimum value for the 'time' variable (with \code{NA}s removed) and
+#'   2) a data frame with 'lat' and 'lon' columns that contains the first \code{n} rows
 #'   of latitude and longitude values, respecitvely, from \code{file.l1.}.
+#'   The names of these elements are 'deployment_time' and 'deployment_position', respectively.
 #'   If \code{na.start.skip} is \code{TRUE}, then front rows
 #'   with \code{NA} lat or lon values are removed before returning the first \code{n} rows.
 #'   See Details for a description of 'front'
@@ -24,7 +27,7 @@
 #'   A warning is printed if any of the printed coordiantes are not
 #'   south of 58 deg S and between 70 deg W and 50 deg W.
 #' @export
-amlr_deployment_position <- function(file.l1, n = 1, na.start.skip = TRUE) {
+amlr_deployment <- function(file.l1, n = 1, na.start.skip = TRUE) {
   stopifnot(
     inherits(file.l1, "character"),
     file.exists(file.l1),
@@ -40,6 +43,7 @@ amlr_deployment_position <- function(file.l1, n = 1, na.start.skip = TRUE) {
   x1 <- nc_open(file.l1)
   x1.lat <- ncvar_get(x1, "latitude")
   x1.lon <- ncvar_get(x1, "longitude")
+  x1.time <- as.POSIXct(ncvar_get(x1, "time"), origin = "1970-01-01")
 
   x1.ll <- data.frame(lat = as.numeric(x1.lat), lon = as.numeric(x1.lon))
   x1.ll.nona <- !is.na(x1.lat) & !is.na(x1.lon)
@@ -64,5 +68,5 @@ amlr_deployment_position <- function(file.l1, n = 1, na.start.skip = TRUE) {
     if (any(!between(na.omit(df.out$lon), -70, -50)))
       warning("At least one output lon value is not between -70 and -50; are these data useable?")
 
-  df.out
+  list(deployment_time = min(x1.time, na.rm = TRUE), deployment_position = df.out)
 }
