@@ -7,7 +7,7 @@ amlr_ngdac_nc_put_qc <- function(ncnew, z1, z2) {
   qc.values <- 0:9
 
   ncatt_put(ncnew, z1, "flag_meanings", qc.meanings)
-  ncatt_put(ncnew, z1, "flag_values", qc.values)
+  ncatt_put(ncnew, z1, "flag_values", qc.values, prec = "byte")
   ncatt_put(ncnew, z1, "long_name", paste(z1, "Quality Flag"))
   ncatt_put(ncnew, z1, "standard_name", paste(z2, "status_flag"))
   ncatt_put(ncnew, z1, "valid_max", 9, prec = "byte")

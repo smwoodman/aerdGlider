@@ -327,20 +327,20 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncvar_put(ncnew, "profile_time", profile.curr$time)
       ncvar_put(ncnew, "profile_lat", profile.curr$latitude)
       ncvar_put(ncnew, "profile_lon", profile.curr$longitude)
-      # ncvar_put(ncnew, "time_uv", NA)
-      # ncvar_put(ncnew, "lat_uv", NA)
-      # ncvar_put(ncnew, "lon_uv", NA)
-      # ncvar_put(ncnew, "u", NA)
-      # ncvar_put(ncnew, "v", NA)
+      ncvar_put(ncnew, "time_uv", NA)
+      ncvar_put(ncnew, "lat_uv", NA)
+      ncvar_put(ncnew, "lon_uv", NA)
+      ncvar_put(ncnew, "u", NA)
+      ncvar_put(ncnew, "v", NA)
 
       ncvar_put(ncnew, "profile_time_qc", 0)
       ncvar_put(ncnew, "profile_lat_qc", 0)
       ncvar_put(ncnew, "profile_lon_qc", 0)
-      # ncvar_put(ncnew, "time_uv_qc", NA)
-      # ncvar_put(ncnew, "lat_uv_qc", NA)
-      # ncvar_put(ncnew, "lon_uv_qc", NA)
-      # ncvar_put(ncnew, "u_qc", NA)
-      # ncvar_put(ncnew, "v_qc", NA)
+      ncvar_put(ncnew, "time_uv_qc", 0)
+      ncvar_put(ncnew, "lat_uv_qc", 0)
+      ncvar_put(ncnew, "lon_uv_qc", 0)
+      ncvar_put(ncnew, "u_qc", 0)
+      ncvar_put(ncnew, "v_qc", 0)
 
       # 'platform' and 'instrument_' vars have no values, just attributes
 
@@ -658,7 +658,7 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
 
       ncatt_put(ncnew, 0, "Conventions", "CF-1.6, COARDS, ACDD-1.3")
       ncatt_put(ncnew, 0, "Metadata_Conventions", "CF-1.6, COARDS, ACDD-1.3")
-      ncatt_put(ncnew, 0, "acknowledegment", "This work supported by funding from NOAA")
+      ncatt_put(ncnew, 0, "acknowledgement", "This work supported by funding from NOAA")
       ncatt_put(ncnew, 0, "comment",
                 paste("These data are part of the U.S. AMLR Program Operation FREEBYRD.",
                       "FREEBYRD is a long term program to replace ship-based surveys with autonomous vehicles",
@@ -673,11 +673,11 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, 0, "date_created", date.curr)
       ncatt_put(ncnew, 0, "date_issued", date.curr)
       ncatt_put(ncnew, 0, "date_modified", date.curr)
-      ncatt_put(ncnew, 0, "format_version", "IOOS_Glider_NetCDF_v2.0.nc")
+      ncatt_put(ncnew, 0, "format_version", "IOOS_Glider_NetCDF_v3.0.nc")
       ncatt_put(ncnew, 0, "history",
-                paste("TODO: Raw glider data processed using the toolbox at https://github.com/socib/glider_toolbox.\n",
-                      date.curr, "sam.woodman@noaa.gov of NOAA NMFS SWFSC AERD used Convert_amlr.R script",
-                      "to convert the source file to format_version=IOOS_Glider_NetCDF_v2.0.nc"))
+                paste("Raw glider data processed using the toolbox at https://github.com/socib/glider_toolbox.\n",
+                      date.curr, "sam.woodman@noaa.gov of NOAA NMFS SWFSC AERD used amlrGlider R package",
+                      "to convert the source file to format_version=IOOS_Glider_NetCDF_v3.0.nc"))
       ncatt_put(ncnew, 0, "id", paste0(y.traj, "-delayed"))
       ncatt_put(ncnew, 0, "institution", "Antarctic Ecosystem Research Division")
       # ncatt_put(ncnew, 0, "ioos_regional_association", "todo")
@@ -693,13 +693,17 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
                       "Data provided as is with no expressed or implied assurance of quality assurance or quality control."))
       ncatt_put(ncnew, 0, "metadata_link", " ")
       ncatt_put(ncnew, 0, "naming_authority", "gov.noaa.fisheries")
+      # ncatt_put(ncnew, 0, "platform", "In Situ Ocean-based Platforms > AUVS > Autonomous Underwater Vehicles")
       ncatt_put(ncnew, 0, "platform_type", "Slocum Glider")
+      # ncatt_put(ncnew, 0, "platform_vocabulary", "NASA/GCMD Platforms Keywords Version 8.5")
       ncatt_put(ncnew, 0, "processing_level", "No QC has been done to this delayed data")
+      ncatt_put(ncnew, 0, "program", "U.S. Antarctic Marine Living Resources Program")
       ncatt_put(ncnew, 0, "project", "FREEBYRD")
       ncatt_put(ncnew, 0, "publisher_email", "christian.reiss@noaa.gov")
-      ncatt_put(ncnew, 0, "publisher_name", "Antarctic Ecosystem Research Division")
+      ncatt_put(ncnew, 0, "publisher_institution", "Antarctic Ecosystem Research Division")
+      ncatt_put(ncnew, 0, "publisher_name", "Christian Reiss")
       ncatt_put(ncnew, 0, "publisher_url", aerd.url)
-      ncatt_put(ncnew, 0, "references", "todo")
+      ncatt_put(ncnew, 0, "references", " ")
       ncatt_put(ncnew, 0, "sea_name", "Southern Ocean")
       ncatt_put(ncnew, 0, "source", "Observational data from a profiling glider")
       ncatt_put(ncnew, 0, "standard_name_vocabulary", "CF Standard Name Table v73")
@@ -707,10 +711,10 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
                 paste("These data are part of the U.S. AMLR Program Operation FREEBYRD.",
                       "FREEBYRD is a long term program to replace ship-based surveys with autonomous vehicles",
                       "to estimate Antarctic krill biomass in support of the CCAMLR"))
-      ncatt_put(ncnew, 0, "title", "todo")
-      ncatt_put(ncnew, 0, "wmo_id", "todo")
+      ncatt_put(ncnew, 0, "title", y.traj)
+      ncatt_put(ncnew, 0, "wmo_id", wmo.id)
     }, finally = nc_close(ncnew))
-  }
+  } #End of for() loop
 
 
   #----------------------------------------------------------------------------
