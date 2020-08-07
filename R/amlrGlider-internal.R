@@ -1,17 +1,18 @@
-amlr_ngdac_nc_put_qc <- function(ncnew, z1, z2) {
-  # Add attributes to _qc z1 variable of ncnew
-  # z1: qc variable name, e.g. "lat_qc"
-  # z2: descriptor for standard_name, e.g. "latitude
+amlr_ngdac_nc_put_qc <- function(ncnew, z.var, z.long, z.standard) {
+  # Add attributes to _qc z.var variable of ncnew
+  # z.var: qc variable name, e.g. "lat_qc"
+  # z.long: start of long_name
+  # z.standard: descriptor for standard_name, e.g. "latitude"
   qc.meanings <- paste("no_qc_performed good_data probably_good_data bad_data_that_are_potentially_correctable",
                        "bad_data value_changed not_used not_used interpolated_value missing_value")
   qc.values <- 0:9
 
-  ncatt_put(ncnew, z1, "flag_meanings", qc.meanings)
-  ncatt_put(ncnew, z1, "flag_values", qc.values, prec = "byte")
-  ncatt_put(ncnew, z1, "long_name", paste(z1, "Quality Flag"))
-  ncatt_put(ncnew, z1, "standard_name", paste(z2, "status_flag"))
-  ncatt_put(ncnew, z1, "valid_max", 9, prec = "byte")
-  ncatt_put(ncnew, z1, "valid_min", 0, prec = "byte")
+  ncatt_put(ncnew, z.var, "flag_meanings", qc.meanings)
+  ncatt_put(ncnew, z.var, "flag_values", qc.values, prec = "byte")
+  ncatt_put(ncnew, z.var, "long_name", paste(z.long, "Quality Flag"))
+  ncatt_put(ncnew, z.var, "standard_name", paste(z.standard, "status_flag"))
+  ncatt_put(ncnew, z.var, "valid_max", 9, prec = "byte")
+  ncatt_put(ncnew, z.var, "valid_min", 0, prec = "byte")
 
   TRUE
 }

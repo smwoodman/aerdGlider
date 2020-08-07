@@ -224,8 +224,7 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncvar_def("depth", units = ncatt_get(x1, "depth")$units, dim = y.dim.time, missval = -999, prec = "double"),
       ncvar_def("temperature", units = ncatt_get(x1, "temperature")$units, dim = y.dim.time, missval = -999, prec = "double"),
       ncvar_def("conductivity", units = ncatt_get(x1, "conductivity")$units, dim = y.dim.time, missval = -999, prec = "double"),
-      ncvar_def("salinity", units = ncatt_get(x1, "salinity")$units, dim = y.dim.time, missval = -999, prec = "double"),
-      # ^ TODO change units to 1
+      ncvar_def("salinity", units = "1", dim = y.dim.time, missval = -999, prec = "double"), #L1 units are 'PSU'
       ncvar_def("density", units = ncatt_get(x1, "density")$units, dim = y.dim.time, missval = -999, prec = "double"),
 
       ncvar_def("oxygen_saturation", units = "percent", dim = y.dim.time, missval = -999, prec = "double"),
@@ -354,32 +353,32 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "time", "long_name", "Time")
       ncatt_put(ncnew, "time", "observation_type", "measured")
       ncatt_put(ncnew, "time", "standard_name", ncatt_get(x1, "time")$standard_name)
-      amlr_ngdac_nc_put_qc(ncnew, "time_qc", ncatt_get(x1, "time")$standard_name)
+      amlr_ngdac_nc_put_qc(ncnew, "time_qc", "time", ncatt_get(x1, "time")$standard_name)
 
       ncatt_put(ncnew, "trajectory", "cf_role", "trajectory_id")
       ncatt_put(ncnew, "trajectory", "comment", "A trajectory is a single deployment of a glider and may span multiple data files.")
       ncatt_put(ncnew, "trajectory", "long_name", "Trajectory/Deployment Name")
 
       ncatt_put(ncnew, "lat", "ancillary_variables", "lat_qc")
-      ncatt_put(ncnew, "lat", "comment", "Value is interpolated to provide an estimate of the latitude at the mid-point of the profile.")
+      ncatt_put(ncnew, "lat", "comment", "Values may be interpolated between measured GPS fixes")
       ncatt_put(ncnew, "lat", "coordinate_reference_frame", "urn:ogc:crs:EPSG::4326")
       ncatt_put(ncnew, "lat", "long_name", "Latitude")
       ncatt_put(ncnew, "lat", "observation_type", "measured")
       ncatt_put(ncnew, "lat", "platform", "platform")
       ncatt_put(ncnew, "lat", "reference", "WGS84")
       ncatt_put(ncnew, "lat", "standard_name", ncatt_get(x1, "latitude")$standard_name)
-      amlr_ngdac_nc_put_qc(ncnew, "lat_qc", ncatt_get(x1, "latitude")$standard_name)
+      amlr_ngdac_nc_put_qc(ncnew, "lat_qc", "latitude", ncatt_get(x1, "latitude")$standard_name)
       valid_put_check(ncnew, ts.curr$latitude, -90, 90, "lat", y.traj)
 
       ncatt_put(ncnew, "lon", "ancillary_variables", "lon_qc")
-      ncatt_put(ncnew, "lon", "comment", "Value is interpolated to provide an estimate of the longitude at the mid-point of the profile.")
+      ncatt_put(ncnew, "lon", "comment", "Values may be interpolated between measured GPS fixes")
       ncatt_put(ncnew, "lon", "coordinate_reference_frame", "urn:ogc:crs:EPSG::4326")
       ncatt_put(ncnew, "lon", "long_name", "Longitude")
       ncatt_put(ncnew, "lon", "observation_type", "measured")
       ncatt_put(ncnew, "lon", "platform", "platform")
       ncatt_put(ncnew, "lon", "reference", "WGS84")
       ncatt_put(ncnew, "lon", "standard_name", ncatt_get(x1, "longitude")$standard_name)
-      amlr_ngdac_nc_put_qc(ncnew, "lon_qc", ncatt_get(x1, "longitude")$standard_name)
+      amlr_ngdac_nc_put_qc(ncnew, "lon_qc", "longitude", ncatt_get(x1, "longitude")$standard_name)
       valid_put_check(ncnew, ts.curr$longitude, -180, 180, "lon", y.traj)
 
       ncatt_put(ncnew, "pressure", "accuracy", " ")
@@ -394,7 +393,7 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "pressure", "reference_datum", "sea-surface")
       ncatt_put(ncnew, "pressure", "resolution", " ")
       ncatt_put(ncnew, "pressure", "standard_name", "sea_water_pressure") #ncatt_get(x1, "pressure")$standard_name
-      amlr_ngdac_nc_put_qc(ncnew, "pressure_qc", "sea_water_pressure")
+      amlr_ngdac_nc_put_qc(ncnew, "pressure_qc", "pressure", "sea_water_pressure")
       valid_put_check(ncnew, ts.curr$pressure, 0, 2000, "pressure", y.traj)
 
       ncatt_put(ncnew, "depth", "accuracy", " ")
@@ -409,7 +408,7 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "depth", "reference_datum", "sea-surface")
       ncatt_put(ncnew, "depth", "resolution", " ")
       ncatt_put(ncnew, "depth", "standard_name", ncatt_get(x1, "depth")$standard_name)
-      amlr_ngdac_nc_put_qc(ncnew, "depth_qc", ncatt_get(x1, "depth")$standard_name)
+      amlr_ngdac_nc_put_qc(ncnew, "depth_qc", "depth", ncatt_get(x1, "depth")$standard_name)
       valid_put_check(ncnew, ts.curr$depth, 0, 2000, "depth", y.traj)
 
       ncatt_put(ncnew, "temperature", "accuracy", " ")
@@ -421,7 +420,7 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "temperature", "precision", " ")
       ncatt_put(ncnew, "temperature", "resolution", " ")
       ncatt_put(ncnew, "temperature", "standard_name", ncatt_get(x1, "temperature")$standard_name)
-      amlr_ngdac_nc_put_qc(ncnew, "temperature_qc", ncatt_get(x1, "temperature")$standard_name)
+      amlr_ngdac_nc_put_qc(ncnew, "temperature_qc", "temperature", ncatt_get(x1, "temperature")$standard_name)
       valid_put_check(ncnew, ts.curr$temperature, -5, 40, "temperature", y.traj)
 
       ncatt_put(ncnew, "conductivity", "accuracy", " ")
@@ -433,7 +432,7 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "conductivity", "precision", " ")
       ncatt_put(ncnew, "conductivity", "resolution", " ")
       ncatt_put(ncnew, "conductivity", "standard_name", "sea_water_electrical_conductivity") #ncatt_get(x1, "conductivity")$standard_name
-      amlr_ngdac_nc_put_qc(ncnew, "conductivity_qc", "sea_water_electrical_conductivity")
+      amlr_ngdac_nc_put_qc(ncnew, "conductivity_qc", "conductivity", "sea_water_electrical_conductivity")
       valid_put_check(ncnew, ts.curr$conductivity, 0, 10, "conductivity", y.traj)
 
       ncatt_put(ncnew, "salinity", "accuracy", " ")
@@ -445,7 +444,7 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "salinity", "precision", " ")
       ncatt_put(ncnew, "salinity", "resolution", " ")
       ncatt_put(ncnew, "salinity", "standard_name", "sea_water_practical_salinity") #ncatt_get(x1, "salinity")$standard_name
-      amlr_ngdac_nc_put_qc(ncnew, "salinity_qc", "sea_water_salinity")
+      amlr_ngdac_nc_put_qc(ncnew, "salinity_qc", "salinity", "sea_water_practical_salinity")
       valid_put_check(ncnew, ts.curr$salinity, 0, 40.0, "salinity", y.traj)
 
       ncatt_put(ncnew, "density", "accuracy", " ")
@@ -457,13 +456,13 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "density", "precision", " ")
       ncatt_put(ncnew, "density", "resolution", " ")
       ncatt_put(ncnew, "density", "standard_name", ncatt_get(x1, "density")$standard_name)
-      amlr_ngdac_nc_put_qc(ncnew, "density_qc", ncatt_get(x1, "density")$standard_name)
+      amlr_ngdac_nc_put_qc(ncnew, "density_qc", "density", ncatt_get(x1, "density")$standard_name)
       valid_put_check(ncnew, ts.curr$density, 1015.0, 1040.0, "density", y.traj)
 
       ncatt_put(ncnew, "oxygen_saturation", "accuracy", " ")
       # ncatt_put(ncnew, "oxygen_saturation", "ancillary_variables", "density_qc")
       ncatt_put(ncnew, "oxygen_saturation", "instrument", "instrument_oxygen")
-      ncatt_put(ncnew, "oxygen_saturation", "long_name", "Oxygen saturation")
+      ncatt_put(ncnew, "oxygen_saturation", "long_name", "Oxygen Saturation")
       ncatt_put(ncnew, "oxygen_saturation", "observation_type", "measured")
       ncatt_put(ncnew, "oxygen_saturation", "platform", "platform")
       ncatt_put(ncnew, "oxygen_saturation", "precision", " ")
@@ -475,7 +474,7 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "oxygen_concentration", "accuracy", " ")
       # ncatt_put(ncnew, "oxygen_concentration", "ancillary_variables", "density_qc")
       ncatt_put(ncnew, "oxygen_concentration", "instrument", "instrument_oxygen")
-      ncatt_put(ncnew, "oxygen_concentration", "long_name", "Oxygen concentration")
+      ncatt_put(ncnew, "oxygen_concentration", "long_name", "Oxygen Concentration")
       ncatt_put(ncnew, "oxygen_concentration", "observation_type", "calculated")
       ncatt_put(ncnew, "oxygen_concentration", "platform", "platform")
       ncatt_put(ncnew, "oxygen_concentration", "precision", " ")
@@ -541,7 +540,7 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "profile_time", "observation_type", "calculated")
       ncatt_put(ncnew, "profile_time", "platform", "platform")
       ncatt_put(ncnew, "profile_time", "standard_name", ncatt_get(x2, "time")$standard_name)
-      amlr_ngdac_nc_put_qc(ncnew, "profile_time_qc", ncatt_get(x2, "time")$standard_name)
+      amlr_ngdac_nc_put_qc(ncnew, "profile_time_qc", "profile_time", ncatt_get(x2, "time")$standard_name)
 
       ncatt_put(ncnew, "profile_lat", "comment",
                 "Value is interpolated to provide an estimate of the latitude at the mid-point of the profile")
@@ -549,7 +548,7 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "profile_lat", "observation_type", "calculated")
       ncatt_put(ncnew, "profile_lat", "platform", "platform")
       ncatt_put(ncnew, "profile_lat", "standard_name", ncatt_get(x2, "latitude")$standard_name)
-      amlr_ngdac_nc_put_qc(ncnew, "profile_lat_qc", ncatt_get(x2, "latitude")$standard_name)
+      amlr_ngdac_nc_put_qc(ncnew, "profile_lat_qc", "profile_lat", ncatt_get(x2, "latitude")$standard_name)
       valid_put_check(ncnew, profile.curr$latitude, -90, 90, "profile_lat", y.traj)
 
       ncatt_put(ncnew, "profile_lon", "comment",
@@ -558,16 +557,17 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "profile_lon", "observation_type", "calculated")
       ncatt_put(ncnew, "profile_lon", "platform", "platform")
       ncatt_put(ncnew, "profile_lon", "standard_name", ncatt_get(x2, "longitude")$standard_name)
-      amlr_ngdac_nc_put_qc(ncnew, "profile_lon_qc", ncatt_get(x2, "longitude")$standard_name)
+      amlr_ngdac_nc_put_qc(ncnew, "profile_lon_qc", "profile_lon", ncatt_get(x2, "longitude")$standard_name)
       valid_put_check(ncnew, profile.curr$longitude, -180, 180, "profile_lon", y.traj)
 
+      ncatt_put(ncnew, "time_uv", "calendar", "gregorian")
       ncatt_put(ncnew, "time_uv", "comment",
                 paste("The depth-averaged current is an estimate of the net current measured while the glider is underwater.",
                       "The value is calculated over the entire underwater segment, which may consist of 1 or more dives."))
       ncatt_put(ncnew, "time_uv", "long_name", "Depth-Averaged Time")
       ncatt_put(ncnew, "time_uv", "observation_type", "calculated")
       ncatt_put(ncnew, "time_uv", "standard_name", "time")
-      amlr_ngdac_nc_put_qc(ncnew, "time_uv_qc", "time")
+      amlr_ngdac_nc_put_qc(ncnew, "time_uv_qc", "time_uv", "time")
 
       ncatt_put(ncnew, "lat_uv", "comment",
                 paste("The depth-averaged current is an estimate of the net current measured while the glider is underwater.",
@@ -576,7 +576,7 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "lat_uv", "observation_type", "calculated")
       ncatt_put(ncnew, "lat_uv", "platform", "platform")
       ncatt_put(ncnew, "lat_uv", "standard_name", "latitude")
-      amlr_ngdac_nc_put_qc(ncnew, "lat_uv_qc", "latitude")
+      amlr_ngdac_nc_put_qc(ncnew, "lat_uv_qc", "lat_uv", "latitude")
       valid_put_check(ncnew, NA, -90, 90, "lat_uv", y.traj)
 
       ncatt_put(ncnew, "lon_uv", "comment",
@@ -586,7 +586,7 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "lon_uv", "observation_type", "calculated")
       ncatt_put(ncnew, "lon_uv", "platform", "platform")
       ncatt_put(ncnew, "lon_uv", "standard_name", "longitude")
-      amlr_ngdac_nc_put_qc(ncnew, "lon_uv_qc", "longitude")
+      amlr_ngdac_nc_put_qc(ncnew, "lon_uv_qc", "lon_uv", "longitude")
       valid_put_check(ncnew, NA, -180, 180, "lon_uv", y.traj)
 
       ncatt_put(ncnew, "u", "comment",
@@ -596,7 +596,7 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "u", "observation_type", "calculated")
       ncatt_put(ncnew, "u", "platform", "platform")
       ncatt_put(ncnew, "u", "standard_name", "eastward_sea_water_velocity")
-      amlr_ngdac_nc_put_qc(ncnew, "u_qc", "eastward_sea_water_velocity")
+      amlr_ngdac_nc_put_qc(ncnew, "u_qc", "u", "eastward_sea_water_velocity")
       valid_put_check(ncnew, NA, -10, 10, "u", y.traj)
 
       ncatt_put(ncnew, "v", "comment",
@@ -606,7 +606,7 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "v", "observation_type", "calculated")
       ncatt_put(ncnew, "v", "platform", "platform")
       ncatt_put(ncnew, "v", "standard_name", "northward_sea_water_velocity")
-      amlr_ngdac_nc_put_qc(ncnew, "v_qc", "northward_sea_water_velocity")
+      amlr_ngdac_nc_put_qc(ncnew, "v_qc", "v", "northward_sea_water_velocity")
       valid_put_check(ncnew, NA, -10, 10, "v", y.traj)
 
 
@@ -614,37 +614,37 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
 
       ncatt_put(ncnew, "platform", "comment", paste("Slocum Glider", glider.name))
       ncatt_put(ncnew, "platform", "id", glider.name)
-      ncatt_put(ncnew, "platform", "instrument", c("instrument_ctd", "instrument_oxygen", "instrument_flbbcd"))
+      ncatt_put(ncnew, "platform", "instrument", "instrument_ctd, instrument_oxygen, instrument_flbbcd")
       ncatt_put(ncnew, "platform", "long_name", paste("AERD Slocum Glider", glider.name))
       ncatt_put(ncnew, "platform", "type", "platform")
       ncatt_put(ncnew, "platform", "wmo_id", wmo.id)
 
-      ncatt_put(ncnew, "instrument_ctd", "calibration_date", ctd.info$calib_date)
+      ncatt_put(ncnew, "instrument_ctd", "calibration_date", as.character(ctd.info$calib_date))
       ncatt_put(ncnew, "instrument_ctd", "calibration_report", " ")
       ncatt_put(ncnew, "instrument_ctd", "comment", "pumped CTD")
-      ncatt_put(ncnew, "instrument_ctd", "factory_calibrated", ctd.info$calib_date_factory)
-      ncatt_put(ncnew, "instrument_ctd", "make_model", "Seabird GPCTD")
+      ncatt_put(ncnew, "instrument_ctd", "factory_calibrated", as.character(ctd.info$calib_date_factory))
       ncatt_put(ncnew, "instrument_ctd", "long_name", "Seabird Glider Payload CTD")
+      ncatt_put(ncnew, "instrument_ctd", "make_model", "Seabird GPCTD")
       ncatt_put(ncnew, "instrument_ctd", "platform", "platform")
       ncatt_put(ncnew, "instrument_ctd", "serial_number", ctd.info$serial_num)
       ncatt_put(ncnew, "instrument_ctd", "type", "instrument")
 
-      ncatt_put(ncnew, "instrument_oxygen", "calibration_date", oxygen.info$calib_date)
+      ncatt_put(ncnew, "instrument_oxygen", "calibration_date", as.character(oxygen.info$calib_date))
       ncatt_put(ncnew, "instrument_oxygen", "calibration_report", " ")
       ncatt_put(ncnew, "instrument_oxygen", "comment", " ")
-      ncatt_put(ncnew, "instrument_oxygen", "factory_calibrated", oxygen.info$calib_date_factory)
-      ncatt_put(ncnew, "instrument_oxygen", "make_model", "Aanderaa Optode 4831")
+      ncatt_put(ncnew, "instrument_oxygen", "factory_calibrated", as.character(oxygen.info$calib_date_factory))
       ncatt_put(ncnew, "instrument_oxygen", "long_name", "Dissolved Oxygen Sensor")
+      ncatt_put(ncnew, "instrument_oxygen", "make_model", "Aanderaa Optode 4831")
       ncatt_put(ncnew, "instrument_oxygen", "platform", "platform")
       ncatt_put(ncnew, "instrument_oxygen", "serial_number", oxygen.info$serial_num)
       ncatt_put(ncnew, "instrument_oxygen", "type", "instrument")
 
-      ncatt_put(ncnew, "instrument_flbbcd", "calibration_date", flbbcd.info$calib_date)
+      ncatt_put(ncnew, "instrument_flbbcd", "calibration_date", as.character(flbbcd.info$calib_date))
       ncatt_put(ncnew, "instrument_flbbcd", "calibration_report", " ")
       ncatt_put(ncnew, "instrument_flbbcd", "comment", " ")
-      ncatt_put(ncnew, "instrument_flbbcd", "factory_calibrated", flbbcd.info$calib_date_factory)
-      ncatt_put(ncnew, "instrument_flbbcd", "make_model", "WET Labs ECO Puck FLBBCD")
+      ncatt_put(ncnew, "instrument_flbbcd", "factory_calibrated", as.character(flbbcd.info$calib_date_factory))
       ncatt_put(ncnew, "instrument_flbbcd", "long_name", "Optical Backscatter, Chlorophyll, and CDOM Fluorescence Sensor")
+      ncatt_put(ncnew, "instrument_flbbcd", "make_model", "WET Labs ECO Puck FLBBCD")
       ncatt_put(ncnew, "instrument_flbbcd", "platform", "platform")
       ncatt_put(ncnew, "instrument_flbbcd", "serial_number", flbbcd.info$serial_num)
       ncatt_put(ncnew, "instrument_flbbcd", "type", "instrument")
@@ -676,7 +676,8 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, 0, "format_version", "IOOS_Glider_NetCDF_v3.0.nc")
       ncatt_put(ncnew, 0, "history",
                 paste("Raw glider data processed using the toolbox at https://github.com/socib/glider_toolbox.\n",
-                      date.curr, "sam.woodman@noaa.gov of NOAA NMFS SWFSC AERD used amlrGlider R package",
+                      date.curr, "sam.woodman@noaa.gov of NOAA NMFS SWFSC AERD used R package",
+                      "amlrGlider (https://github.com/smwoodman/amlrGlider)",
                       "to convert the source file to format_version=IOOS_Glider_NetCDF_v3.0.nc"))
       ncatt_put(ncnew, 0, "id", paste0(y.traj, "-delayed"))
       ncatt_put(ncnew, 0, "institution", "Antarctic Ecosystem Research Division")
@@ -710,7 +711,8 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, 0, "summary",
                 paste("These data are part of the U.S. AMLR Program Operation FREEBYRD.",
                       "FREEBYRD is a long term program to replace ship-based surveys with autonomous vehicles",
-                      "to estimate Antarctic krill biomass in support of the CCAMLR"))
+                      "to estimate Antarctic krill biomass in support of the CCAMLR.",
+                      "This delayed dataset contains CTD, oxygen, chlorphyll a, CDOM and optical backscatter measurements."))
       ncatt_put(ncnew, 0, "title", y.traj)
       ncatt_put(ncnew, 0, "wmo_id", wmo.id)
     }, finally = nc_close(ncnew))
