@@ -58,9 +58,18 @@
 #'   file.l2 = "AERD_18_19/dep100_amlr01_sgg3_L2_2018-12-06_data_rt.nc",
 #'   file.out.path = "Output/dep100_amlr01_sgg3/",
 #'   glider.name = "amlr01", wmo.id = "0",
-#'   ctd.info = list(calib_date = as.Date("2000-01-01"), calib_date_factory = as.Date("2000-01-01"), serial_num = "1"),
-#'   optode.info = list(calib_date = as.Date("2000-01-01"), calib_date_factory = as.Date("2000-01-01"), serial_num = "2"),
-#'   flbbcd.info = list(calib_date = as.Date("2000-01-01"), calib_date_factory = as.Date("2000-01-01"), serial_num = "3")
+#'   ctd.info = list(
+#'     calib_date = as.Date("2000-01-01"), calib_date_factory = as.Date("2000-01-01"),
+#'     serial_num = "1"
+#'   ),
+#'   optode.info = list(
+#'     calib_date = as.Date("2000-01-01"), calib_date_factory = as.Date("2000-01-01"),
+#'     serial_num = "2"
+#'   ),
+#'   flbbcd.info = list(
+#'     calib_date = as.Date("2000-01-01"), calib_date_factory = as.Date("2000-01-01"),
+#'     serial_num = "3"
+#'   )
 #' )
 #' }
 #'
