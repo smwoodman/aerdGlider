@@ -11,8 +11,11 @@ amlr_ngdac_convert(
   glider.name,
   wmo.id,
   ctd.info,
+  flbbcd.info,
   oxygen.info,
-  flbbcd.info
+  ctd.comment = "pumped CTD",
+  flbbcd.comment = " ",
+  oxygen.comment = " "
 )
 }
 \arguments{
@@ -24,16 +27,26 @@ amlr_ngdac_convert(
 
 \item{glider.name}{character; name of glider}
 
-\item{wmo.id}{character; the WMO ID of the glider/deployment}
+\item{wmo.id}{character; the WMO ID of the glider/deployment.
+If there is no WMO ID, this should be a single space, i.e. \code{" "}}
 
 \item{ctd.info}{list; CTD information. Must contain the following named elements:
+calib_date (Date), calib_date_factory (Date), and serial_num (character)}
+
+\item{flbbcd.info}{list; flbbcd information. Must contain the following named elements:
 calib_date (Date), calib_date_factory (Date), and serial_num (character)}
 
 \item{oxygen.info}{list; oxygen oxygen information. Must contain the following named elements:
 calib_date (Date), calib_date_factory (Date), and serial_num (character)}
 
-\item{flbbcd.info}{list; flbbcd information. Must contain the following named elements:
-calib_date (Date), calib_date_factory (Date), and serial_num (character)}
+\item{ctd.comment}{character; string to pass to 'comment' attribute of 'instrument_ctd' variable.
+Default is \code{"pumped CTD"}}
+
+\item{flbbcd.comment}{character; string to pass to 'comment' attribute of 'instrument_flbbcd' variable.
+Default is \code{" "}}
+
+\item{oxygen.comment}{character; string to pass to 'comment' attribute of 'instrument_oxygen' variable.
+Default is \code{" "}}
 }
 \value{
 \code{TRUE} if the function ran successfully.
@@ -55,25 +68,25 @@ for more details.
 
 In addition to the variables time series variables listed at the NGDAC website,
 this function writes several other variables to the output nc files.
-These data are collected using oxygen and flbbcd instruments; the metadata for
-these instruments is included in instrument_oxygen and intsrument_flbbcd, respectively.
+These data are collected using flbbcd and oxygen instruments; the metadata for
+these instruments is included in instrument_flbbcd and instrument_oxygen, respectively.
 The variables, along with their standard names (from
 \url{http://cfconventions.org/Data/cf-standard-names/73/build/cf-standard-name-table.html})
 are as follows:
 
 \tabular{l}{
-oxygen_saturation: fractional_saturation_of_oxygen_in_sea_water\cr
-oxygen_concentration: mole_concentration_of_dissolved_molecular_oxygen_in_sea_water\cr
 cdom: concentration_of_colored_dissolved_organic_matter_in_sea_water_expressed_as_equivalent_mass_fraction_of_quinine_sulfate_dihydrate\cr
 chlorophyll: concentration_of_chlorophyll_in_sea_water\cr
 backscatter: volume_backwards_scattering_coefficient_of_radiative_flux_in_sea_water (from backscatter_700 variable)\cr
-radiation_wavelength: radiation_wavelength (700 for all values)
+radiation_wavelength: radiation_wavelength (700 for all values)\cr
+oxygen_saturation: fractional_saturation_of_oxygen_in_sea_water\cr
+oxygen_concentration: mole_concentration_of_dissolved_molecular_oxygen_in_sea_water
 }
 
 When adding data and attributes to the new nc file(s),
 data is extracted from the L1 and L2 files where applicable (e.g. most variable standard names),
-but most of the codes/names/info are hardcoded in the function and thus the function will
-need to be changed if 1) the L!/L2 file structure changes or 2) the NGDAC requirements change.
+but most of the codes/names/info are hard-coded in the function and thus the function will
+need to be changed if 1) the L1/L2 file structure changes or 2) the NGDAC requirements change.
 Dynamic (aka deployment-specific) information is either calculated from the data
 (e.g. deployment date/time) or passed to function via arguments (e.g. CTD calibration information)
 }
@@ -88,13 +101,13 @@ amlr_ngdac_convert( #This is not full deployment data
     calib_date = as.Date("2000-01-01"), calib_date_factory = as.Date("2000-01-01"),
     serial_num = "1"
   ),
-  optode.info = list(
-    calib_date = as.Date("2000-01-01"), calib_date_factory = as.Date("2000-01-01"),
-    serial_num = "2"
-  ),
   flbbcd.info = list(
     calib_date = as.Date("2000-01-01"), calib_date_factory = as.Date("2000-01-01"),
     serial_num = "3"
+  ),
+  optode.info = list(
+    calib_date = as.Date("2000-01-01"), calib_date_factory = as.Date("2000-01-01"),
+    serial_num = "2"
   )
 )
 }

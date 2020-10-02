@@ -68,5 +68,9 @@ amlr_deployment <- function(file.l1, n = 1, na.start.skip = TRUE) {
     if (any(!between(na.omit(df.out$lon), -70, -50)))
       warning("At least one output lon value is not between -70 and -50; are these data useable?")
 
-  list(deployment_time = min(x1.time, na.rm = TRUE), deployment_position = df.out)
+  list(
+    deployment_time = min(x1.time, na.rm = TRUE),
+    deployment_timestamp = format(min(x1.time, na.rm = TRUE), format = "%Y-%m-%dT%H:%MZ"),
+    deployment_position = df.out
+  )
 }

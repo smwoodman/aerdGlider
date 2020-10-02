@@ -6,13 +6,20 @@
 #' @param file.l2 file path for AMLR L2 nc file
 #' @param file.out.path file path to folder where output nc files will be created
 #' @param glider.name character; name of glider
-#' @param wmo.id character; the WMO ID of the glider/deployment
+#' @param wmo.id character; the WMO ID of the glider/deployment.
+#'   If there is no WMO ID, this should be a single space, i.e. \code{" "}
 #' @param ctd.info list; CTD information. Must contain the following named elements:
-#'   calib_date (Date), calib_date_factory (Date), and serial_num (character)
-#' @param oxygen.info list; oxygen oxygen information. Must contain the following named elements:
 #'   calib_date (Date), calib_date_factory (Date), and serial_num (character)
 #' @param flbbcd.info list; flbbcd information. Must contain the following named elements:
 #'   calib_date (Date), calib_date_factory (Date), and serial_num (character)
+#' @param oxygen.info list; oxygen oxygen information. Must contain the following named elements:
+#'   calib_date (Date), calib_date_factory (Date), and serial_num (character)
+#' @param ctd.comment character; string to pass to 'comment' attribute of 'instrument_ctd' variable.
+#'   Default is \code{"pumped CTD"}
+#' @param flbbcd.comment character; string to pass to 'comment' attribute of 'instrument_flbbcd' variable.
+#'   Default is \code{" "}
+#' @param oxygen.comment character; string to pass to 'comment' attribute of 'instrument_oxygen' variable.
+#'   Default is \code{" "}
 #'
 #' @details Raw AMLR glider data is initially processed using the
 #'   SOCIB glider toolbox (\url{https://github.com/socib/glider_toolbox}).
@@ -26,25 +33,25 @@
 #'
 #'   In addition to the variables time series variables listed at the NGDAC website,
 #'   this function writes several other variables to the output nc files.
-#'   These data are collected using oxygen and flbbcd instruments; the metadata for
-#'   these instruments is included in instrument_oxygen and intsrument_flbbcd, respectively.
+#'   These data are collected using flbbcd and oxygen instruments; the metadata for
+#'   these instruments is included in instrument_flbbcd and instrument_oxygen, respectively.
 #'   The variables, along with their standard names (from
 #'   \url{http://cfconventions.org/Data/cf-standard-names/73/build/cf-standard-name-table.html})
 #'   are as follows:
 #'
 #'   \tabular{l}{
-#'     oxygen_saturation: fractional_saturation_of_oxygen_in_sea_water\cr
-#'     oxygen_concentration: mole_concentration_of_dissolved_molecular_oxygen_in_sea_water\cr
 #'     cdom: concentration_of_colored_dissolved_organic_matter_in_sea_water_expressed_as_equivalent_mass_fraction_of_quinine_sulfate_dihydrate\cr
 #'     chlorophyll: concentration_of_chlorophyll_in_sea_water\cr
 #'     backscatter: volume_backwards_scattering_coefficient_of_radiative_flux_in_sea_water (from backscatter_700 variable)\cr
-#'     radiation_wavelength: radiation_wavelength (700 for all values)
-#'   }
+#'     radiation_wavelength: radiation_wavelength (700 for all values)\cr
+#'     oxygen_saturation: fractional_saturation_of_oxygen_in_sea_water\cr
+#'     oxygen_concentration: mole_concentration_of_dissolved_molecular_oxygen_in_sea_water
+#'     }
 #'
 #'   When adding data and attributes to the new nc file(s),
 #'   data is extracted from the L1 and L2 files where applicable (e.g. most variable standard names),
-#'   but most of the codes/names/info are hardcoded in the function and thus the function will
-#'   need to be changed if 1) the L!/L2 file structure changes or 2) the NGDAC requirements change.
+#'   but most of the codes/names/info are hard-coded in the function and thus the function will
+#'   need to be changed if 1) the L1/L2 file structure changes or 2) the NGDAC requirements change.
 #'   Dynamic (aka deployment-specific) information is either calculated from the data
 #'   (e.g. deployment date/time) or passed to function via arguments (e.g. CTD calibration information)
 #'
@@ -62,20 +69,22 @@
 #'     calib_date = as.Date("2000-01-01"), calib_date_factory = as.Date("2000-01-01"),
 #'     serial_num = "1"
 #'   ),
-#'   optode.info = list(
-#'     calib_date = as.Date("2000-01-01"), calib_date_factory = as.Date("2000-01-01"),
-#'     serial_num = "2"
-#'   ),
 #'   flbbcd.info = list(
 #'     calib_date = as.Date("2000-01-01"), calib_date_factory = as.Date("2000-01-01"),
 #'     serial_num = "3"
+#'   ),
+#'   optode.info = list(
+#'     calib_date = as.Date("2000-01-01"), calib_date_factory = as.Date("2000-01-01"),
+#'     serial_num = "2"
 #'   )
 #' )
 #' }
 #'
 #' @export
 amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
-                               wmo.id, ctd.info, oxygen.info, flbbcd.info) {
+                               wmo.id, ctd.info, flbbcd.info, oxygen.info,
+                               ctd.comment = "pumped CTD", flbbcd.comment = " ",
+                               oxygen.comment = " ") {
   #----------------------------------------------------------------------------
   stopifnot(
     inherits(file.l1, "character"),
@@ -100,18 +109,27 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
     inherits(ctd.info$calib_date_factory, "Date"), inherits(oxygen.info$calib_date_factory, "Date"),
     inherits(flbbcd.info$calib_date_factory, "Date"),
     inherits(ctd.info$serial_num, "character"), inherits(oxygen.info$serial_num, "character"),
-    inherits(flbbcd.info$serial_num, "character")
+    inherits(flbbcd.info$serial_num, "character"),
+
+    inherits(ctd.comment, "character"),
+    inherits(oxygen.comment, "character"),
+    inherits(flbbcd.comment, "character")
   )
 
   if (!grepl("L1", file.l1))
-    warning("The phrase 'L1' is not in the L1 file name. Provided L1 file name (file.l1):\n",
+    warning("The phrase 'L1' is not in the L1 file name; is this actually the L1 file?. ",
+            "Provided L1 file name (file.l1):\n",
             file.l1, immediate. = TRUE)
   if (!grepl("L2", file.l2))
-    warning("The phrase 'L2' is not in the L2 file name. Provided L2 file name (file.l2):\n",
+    warning("The phrase 'L2' is not in the L2 file name; is this actually the L1 file?. ",
+            "Provided L2 file name (file.l2):\n",
             file.l2, immediate. = TRUE)
 
-  if (!grepl("amlr", glider.name))
-    warning("'amlr' is not in the glider name", immediate. = TRUE)
+  if (!grepl("amlr", glider.name)) stop("'amlr' is not in the glider name")
+  if (!(grepl(glider.name, file.l1) & grepl(glider.name, file.l2)))
+    warning("At least one of the output file path or the L1/L2 file names does not include ",
+            "the user provided glider name: ", glider.name, "\n",
+            "Did you provide the correct file paths and glider name?")
 
 
   #----------------------------------------------------------------------------
@@ -119,21 +137,14 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
   message("Extracting L2 data")
   x2 <- nc_open(file.l2)
 
-  # TODO: add checks for formatting, etc. Hopefully there is some attribute to check as well
-
-  x2.time <- as.POSIXct(ncvar_get(x2, "time"), origin = "1970-01-01")
-  x2.lat  <- ncvar_get(x2, "latitude")
-  x2.lon  <- ncvar_get(x2, "longitude")
-  x2.prof <- ncvar_get(x2, "profile_index")
-
-  profile.list <- lapply(seq_along(x2.prof), function(prof.idx) {
-    list(
-      time      = x2.time[prof.idx],
-      latitude  = x2.lat[prof.idx],
-      longitude = x2.lon[prof.idx],
-      profile   = x2.prof[prof.idx]
-    )
-  })
+  x2.df <- data.frame(
+    profile   = ncvar_get(x2, "profile_index"),
+    time      = as.POSIXct(ncvar_get(x2, "time"), origin = "1970-01-01"),
+    latitude  = ncvar_get(x2, "latitude"),
+    longitude = ncvar_get(x2, "longitude"),
+    stringsAsFactors = FALSE
+  )
+  stopifnot(length(unique(x2.df$profile)) == nrow(x2.df))
 
 
   #----------------------------------------------------------------------------
@@ -141,80 +152,93 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
   message("Extracting L1 data")
   x1 <- nc_open(file.l1)
 
-  x1.prof <- ncvar_get(x1, "profile_index")
-  x1.time <- as.POSIXct(ncvar_get(x1, "time"), origin = "1970-01-01")
-  x1.dep  <- ncvar_get(x1, "depth")
-  x1.lat  <- ncvar_get(x1, "latitude")
-  x1.lon  <- ncvar_get(x1, "longitude")
-  x1.pres <- ncvar_get(x1, "pressure")
-  x1.temp <- ncvar_get(x1, "temperature")
-  x1.cond <- ncvar_get(x1, "conductivity")
-  x1.sal  <- ncvar_get(x1, "salinity")
-  x1.dens <- ncvar_get(x1, "density")
-  x1.u    <- ncvar_get(x1, "water_velocity_eastward")
-  x1.v    <- ncvar_get(x1, "water_velocity_northward")
-  x1.oxy.sat <- ncvar_get(x1, "oxygen_saturation")
-  x1.oxy.con <- ncvar_get(x1, "oxygen_concentration")
-  x1.cdom  <- ncvar_get(x1, "cdom")
-  x1.chlor <- ncvar_get(x1, "chlorophyll")
-  x1.back  <- ncvar_get(x1, "backscatter_700")
+  x1.df <- data.frame(
+    profile = ncvar_get(x1, "profile_index"),
+    time = as.POSIXct(ncvar_get(x1, "time"), origin = "1970-01-01"),
+    depth = ncvar_get(x1, "depth"),
+    latitude = ncvar_get(x1, "latitude"),
+    longitude = ncvar_get(x1, "longitude"),
+    pressure = ncvar_get(x1, "pressure"),
+    temperature = ncvar_get(x1, "temperature"),
+    conductivity = ncvar_get(x1, "conductivity"),
+    salinity = ncvar_get(x1, "salinity"),
+    density = ncvar_get(x1, "density"),
+    u = ncvar_get(x1, "water_velocity_eastward"),
+    v = ncvar_get(x1, "water_velocity_northward"),
+    oxygen_saturation = ncvar_get(x1, "oxygen_saturation"),
+    oxygen_concentration = ncvar_get(x1, "oxygen_concentration"),
+    cdom = ncvar_get(x1, "cdom"),
+    chlorophyll = ncvar_get(x1, "chlorophyll"),
+    backscatter_700 = ncvar_get(x1, "backscatter_700"),
+    stringsAsFactors = FALSE
+  )
 
 
   # Check that profile indices match between L1 and L2 files
-  if (!(all(x2.prof %in% x1.prof) & all(x1.prof[x1.prof %% 1 == 0] %in% x2.prof)))
+  if (!all(x2.df$profile %in% x1.df$profile)) {
+    # Nuance - sometimes there is no L1 data for a profile index. In these cases,
+    #   the L2 data has a profile index but all NA data
+    profile.nox1 <- setdiff(x2.df$profile, x1.df$profile)
+    stopifnot(identical(names(x2.df)[1], "profile"))
+    profile.nox1.vals <- c(
+      lapply(x2.df[, -1], function(i) {
+        as.character(i[profile.nox1]) #Needed for time values
+      }),
+      lapply(setdiff(names(x2$var), c("profile_index", "longitude", "latitude")), function(i) {
+        ncvar_get(x2, i)[, profile.nox1]
+      }),
+      list(time = as.character(as.POSIXct(ncvar_get(x2, "time"), origin = "1970-01-01"))[profile.nox1])
+    )
+    # names(profile.nox1.vals) <- c( #For debugging
+    #   names(x2.df[, -1]), setdiff(names(x2$var), c("profile_index", "longitude", "latitude")), "time"
+    # )
+
+    # Check that all L2 variable values are NA for these indices
+    if (!all(vapply(profile.nox1.vals, function(j) all(is.na(j) | j == 0), as.logical(1)))) {
+      stop("The profile indices in the L2 file but not the L1 file have non-Na time/lat/lon values - ",
+           "did you specify files from the same deployment?")
+    } else {
+      x2.df <- x2.df %>% filter(.data$profile %in% x1.df$profile)
+    }
+
+
+  } else if (!all(x1.df$profile[x1.df$profile %% 1 == 0] %in% x2.df$profile)) {
+    stop("The L1 file contains profile indices that are not in the L2 file - ",
+         "did you specify files from the same deployment?")
+  }
+
+
+  ### Sanity checks
+  if (!all(x2.df$profile %in% x1.df$profile) ||
+      !all(x1.df$profile[x1.df$profile %% 1 == 0] %in% x2.df$profile))
     stop("The profile indices of the L1 and L2 files do not match - ",
          "did you specify files from the same deployment?")
 
-  ts.list <- lapply(seq_along(x2.prof), function(prof.val) {
-    prof.idx <- which(x1.prof == prof.val)
-    list(
-      time         = x1.time[prof.idx],
-      depth        = x1.dep[prof.idx],
-      latitude     = x1.lat[prof.idx],
-      longitude    = x1.lon[prof.idx],
-      pressure     = x1.pres[prof.idx],
-      temperature  = x1.temp[prof.idx],
-      conductivity = x1.cond[prof.idx],
-      salinity     = x1.sal[prof.idx],
-      density      = x1.dens[prof.idx],
-      profile      = x1.prof[prof.idx],
-      u = x1.u[prof.idx], v = x1.v[prof.idx],
-      oxygen_saturation    = x1.oxy.sat[prof.idx],
-      oxygen_concentration = x1.oxy.con[prof.idx],
-      cdom            = x1.cdom[prof.idx],
-      chlorophyll     = x1.chlor[prof.idx],
-      backscatter_700 = x1.back[prof.idx]
-    )
-  })
-
-  if (!all(sapply(ts.list, function(i) length(unique(sapply(i, length))) == 1)))
-    stop("Error in extracting time series variables - unequal lengths")
+  if (anyNA(x2.df) | anyNA(x1.df[, c("profile", "time")]))
+    stop("Profile, time, or profile-level lat/lon values are NA")
 
 
   #----------------------------------------------------------------------------
   ### Generate one nc file per profile with data in NGDAC format (Glider DAC 3.0)
+  # Parallel-izing wasn't worth the 'effort'
+
 
   # https://ioos.github.io/ioosngdac/ngdac-netcdf-file-format-version-2.html
-  message("Generating nc files")
-  for (i in x2.prof[1:5]) { #TODO: change
-    # i <- x2.prof[1]
-
+  message("Generating ", nrow(x2.df), " nc files")
+  for (i in x2.df$profile) {
     # Get current data
-    profile.curr <- profile.list[[i]]
-    ts.curr <- ts.list[[i]]
+    profile.curr <- x2.df %>% filter(.data$profile == i)
+    ts.curr <- x1.df %>% filter(.data$profile == i)
 
     stopifnot(
-      length(profile.curr$profile) == 1,
-      profile.curr$profile == i,
-      all(ts.curr$profile == i),
-      profile.curr$time >= min(ts.curr$time),
-      profile.curr$time <= max(ts.curr$time)
+      nrow(profile.curr) == 1,
+      between(profile.curr$time, min(ts.curr$time), max(ts.curr$time))
     )
 
     #----------------------------------------------------------------
     # Define variables and dimensions -
     #   cleaner to do this as list so the list can just be passed to nc_create()
-    #   long_name is set in amlr_ngdac_nc_put() for consistency
+    #   long_name is set in later for consistency
     time.unit <- "seconds since 1970-01-01T00:00:00Z"
     y.dim.time <- ncdim_def(
       "time", units = time.unit, vals = as.numeric(ts.curr$time), unlim = TRUE, calendar = "gregorian"
@@ -269,7 +293,6 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncvar_def("conductivity_qc", units = "", dim = y.dim.time, missval = -127, prec = "byte"),
       ncvar_def("salinity_qc", units = "", dim = y.dim.time, missval = -127, prec = "byte"),
       ncvar_def("density_qc", units = "", dim = y.dim.time, missval = -127, prec = "byte"),
-      # ncvar_def("oxygen_saturation_qc", units = "", dim = y.dim.time, missval = -127, prec = "byte"),
 
       ncvar_def("profile_time_qc", units = "", dim = list(), missval = -127, prec = "byte"),
       ncvar_def("profile_lat_qc", units = "", dim = list(), missval = -127, prec = "byte"),
@@ -300,7 +323,6 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       # Time series variables
       ts.count <- length(ts.curr$time)
       qc.val <- rep(as.integer(0), ts.count)
-      #TODO ^: should any values be something other than no qc?
 
       ncvar_put(ncnew, "time", ts.curr$time, start = 1, count = ts.count)
       ncvar_put(ncnew, "trajectory", y.traj)
@@ -469,7 +491,6 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       valid_put_check(ncnew, ts.curr$density, 1015.0, 1040.0, "density", y.traj)
 
       ncatt_put(ncnew, "oxygen_saturation", "accuracy", " ")
-      # ncatt_put(ncnew, "oxygen_saturation", "ancillary_variables", "density_qc")
       ncatt_put(ncnew, "oxygen_saturation", "instrument", "instrument_oxygen")
       ncatt_put(ncnew, "oxygen_saturation", "long_name", "Oxygen Saturation")
       ncatt_put(ncnew, "oxygen_saturation", "observation_type", "measured")
@@ -477,11 +498,9 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "oxygen_saturation", "precision", " ")
       ncatt_put(ncnew, "oxygen_saturation", "resolution", " ")
       ncatt_put(ncnew, "oxygen_saturation", "standard_name", ncatt_get(x1, "oxygen_saturation")$standard_name)
-      # amlr_ngdac_nc_put_qc(ncnew, "oxygen_saturation_qc", ncatt_get(x1, "oxygen_saturation")$standard_name)
       valid_put_check(ncnew, ts.curr$oxygen_saturation, 0, 120, "oxygen_saturation", y.traj)
 
       ncatt_put(ncnew, "oxygen_concentration", "accuracy", " ")
-      # ncatt_put(ncnew, "oxygen_concentration", "ancillary_variables", "density_qc")
       ncatt_put(ncnew, "oxygen_concentration", "instrument", "instrument_oxygen")
       ncatt_put(ncnew, "oxygen_concentration", "long_name", "Oxygen Concentration")
       ncatt_put(ncnew, "oxygen_concentration", "observation_type", "calculated")
@@ -489,11 +508,9 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "oxygen_concentration", "precision", " ")
       ncatt_put(ncnew, "oxygen_concentration", "resolution", " ")
       ncatt_put(ncnew, "oxygen_concentration", "standard_name", ncatt_get(x1, "oxygen_concentration")$standard_name)
-      # amlr_ngdac_nc_put_qc(ncnew, "oxygen_concentration_qc", ncatt_get(x1, "oxygen_concentration")$standard_name)
       valid_put_check(ncnew, ts.curr$oxygen_concentration, 0, 500, "oxygen_concentration", y.traj)
 
       ncatt_put(ncnew, "cdom", "accuracy", " ")
-      # ncatt_put(ncnew, "cdom", "ancillary_variables", "density_qc")
       ncatt_put(ncnew, "cdom", "instrument", "instrument_flbbcd")
       ncatt_put(ncnew, "cdom", "long_name", "CDOM")
       ncatt_put(ncnew, "cdom", "observation_type", "measured")
@@ -502,11 +519,9 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "cdom", "resolution", " ")
       ncatt_put(ncnew, "cdom", "standard_name", #ncatt_get(x1, "cdom")$standard_name
                 "concentration_of_colored_dissolved_organic_matter_in_sea_water_expressed_as_equivalent_mass_fraction_of_quinine_sulfate_dihydrate")
-      # amlr_ngdac_nc_put_qc(ncnew, "cdom_qc", ncatt_get(x1, "cdom")$standard_name)
       valid_put_check(ncnew, ts.curr$cdom, 0, 375, "cdom", y.traj)
 
       ncatt_put(ncnew, "chlorophyll", "accuracy", " ")
-      # ncatt_put(ncnew, "chlorophyll", "ancillary_variables", "density_qc")
       ncatt_put(ncnew, "chlorophyll", "instrument", "instrument_flbbcd")
       ncatt_put(ncnew, "chlorophyll", "long_name", "Chlorophyll")
       ncatt_put(ncnew, "chlorophyll", "observation_type", "measured")
@@ -514,7 +529,6 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "chlorophyll", "precision", " ")
       ncatt_put(ncnew, "chlorophyll", "resolution", " ")
       ncatt_put(ncnew, "chlorophyll", "standard_name", ncatt_get(x1, "chlorophyll")$standard_name)
-      # amlr_ngdac_nc_put_qc(ncnew, "chlorophyll_qc", ncatt_get(x1, "chlorophyll")$standard_name)
       valid_put_check(ncnew, ts.curr$chlorophyll, 0, 50, "chlorophyll", y.traj)
 
       ncatt_put(ncnew, "radiation_wavelength", "long_name", "Backscatter Radiation Wavelength")
@@ -523,7 +537,7 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "radiation_wavelength", "standard_name", "radiation_wavelength")
 
       ncatt_put(ncnew, "backscatter", "accuracy", " ")
-      ncatt_put(ncnew, "backscatter", "ancillary_variables", "radiation_wavelength") #"density_qc"
+      ncatt_put(ncnew, "backscatter", "ancillary_variables", "radiation_wavelength")
       ncatt_put(ncnew, "backscatter", "instrument", "instrument_flbbcd")
       ncatt_put(ncnew, "backscatter", "long_name", "Optical Backscatter")
       ncatt_put(ncnew, "backscatter", "observation_type", "calculated")
@@ -532,8 +546,6 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, "backscatter", "resolution", " ")
       ncatt_put(ncnew, "backscatter", "standard_name", #ncatt_get(x1, "backscatter")$standard_name
                 "volume_backwards_scattering_coefficient_of_radiative_flux_in_sea_water")
-      # amlr_ngdac_nc_put_qc(ncnew, "backscatter_qc", ncatt_get(x1, "backscatter")$standard_name)
-      # valid_put_check(ncnew, ts.curr$backscatter, 0, 375, "backscatter", y.traj)
 
 
 
@@ -620,77 +632,75 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
 
 
 
-
-      ncatt_put(ncnew, "platform", "comment", paste("Slocum Glider", glider.name))
+      # See https://gliders.ioos.us/ncei_authority_tables/instruments.txt for NCEI-accepted things
+      ncatt_put(ncnew, "platform", "comment", " ")
+      ncatt_put(ncnew, "platform", "glider_type", "Teledyne Webb Research Slocum G3 glider")
       ncatt_put(ncnew, "platform", "id", glider.name)
-      ncatt_put(ncnew, "platform", "instrument", "instrument_ctd, instrument_oxygen, instrument_flbbcd")
-      ncatt_put(ncnew, "platform", "long_name", paste("AERD Slocum Glider", glider.name))
+      ncatt_put(ncnew, "platform", "instrument", "instrument_ctd, instrument_flbbcd, instrument_oxygen")
+      ncatt_put(ncnew, "platform", "long_name", paste("Slocum Glider", glider.name))
       ncatt_put(ncnew, "platform", "type", "platform")
       ncatt_put(ncnew, "platform", "wmo_id", wmo.id)
 
       ncatt_put(ncnew, "instrument_ctd", "calibration_date", as.character(ctd.info$calib_date))
       ncatt_put(ncnew, "instrument_ctd", "calibration_report", " ")
-      ncatt_put(ncnew, "instrument_ctd", "comment", "pumped CTD")
+      ncatt_put(ncnew, "instrument_ctd", "comment", ctd.comment)
       ncatt_put(ncnew, "instrument_ctd", "factory_calibrated", as.character(ctd.info$calib_date_factory))
       ncatt_put(ncnew, "instrument_ctd", "long_name", "Seabird Glider Payload CTD")
-      ncatt_put(ncnew, "instrument_ctd", "make_model", "Seabird GPCTD")
+      ncatt_put(ncnew, "instrument_ctd", "make_model", "Seabird GPCTD") #NCEI
       ncatt_put(ncnew, "instrument_ctd", "platform", "platform")
       ncatt_put(ncnew, "instrument_ctd", "serial_number", ctd.info$serial_num)
       ncatt_put(ncnew, "instrument_ctd", "type", "instrument")
 
-      ncatt_put(ncnew, "instrument_oxygen", "calibration_date", as.character(oxygen.info$calib_date))
-      ncatt_put(ncnew, "instrument_oxygen", "calibration_report", " ")
-      ncatt_put(ncnew, "instrument_oxygen", "comment", " ")
-      ncatt_put(ncnew, "instrument_oxygen", "factory_calibrated", as.character(oxygen.info$calib_date_factory))
-      ncatt_put(ncnew, "instrument_oxygen", "long_name", "Dissolved Oxygen Sensor")
-      ncatt_put(ncnew, "instrument_oxygen", "make_model", "Aanderaa Optode 4831")
-      ncatt_put(ncnew, "instrument_oxygen", "platform", "platform")
-      ncatt_put(ncnew, "instrument_oxygen", "serial_number", oxygen.info$serial_num)
-      ncatt_put(ncnew, "instrument_oxygen", "type", "instrument")
-
       ncatt_put(ncnew, "instrument_flbbcd", "calibration_date", as.character(flbbcd.info$calib_date))
       ncatt_put(ncnew, "instrument_flbbcd", "calibration_report", " ")
-      ncatt_put(ncnew, "instrument_flbbcd", "comment", " ")
+      ncatt_put(ncnew, "instrument_flbbcd", "comment", flbbcd.comment)
       ncatt_put(ncnew, "instrument_flbbcd", "factory_calibrated", as.character(flbbcd.info$calib_date_factory))
       ncatt_put(ncnew, "instrument_flbbcd", "long_name", "Optical Backscatter, Chlorophyll, and CDOM Fluorescence Sensor")
-      ncatt_put(ncnew, "instrument_flbbcd", "make_model", "WET Labs ECO Puck FLBBCD")
+      ncatt_put(ncnew, "instrument_flbbcd", "make_model", "WET Labs ECO Puck FLBBCD") #NCEI
       ncatt_put(ncnew, "instrument_flbbcd", "platform", "platform")
       ncatt_put(ncnew, "instrument_flbbcd", "serial_number", flbbcd.info$serial_num)
       ncatt_put(ncnew, "instrument_flbbcd", "type", "instrument")
+
+      ncatt_put(ncnew, "instrument_oxygen", "calibration_date", as.character(oxygen.info$calib_date))
+      ncatt_put(ncnew, "instrument_oxygen", "calibration_report", " ")
+      ncatt_put(ncnew, "instrument_oxygen", "comment", oxygen.comment)
+      ncatt_put(ncnew, "instrument_oxygen", "factory_calibrated", as.character(oxygen.info$calib_date_factory))
+      ncatt_put(ncnew, "instrument_oxygen", "long_name", "Dissolved Oxygen Sensor")
+      ncatt_put(ncnew, "instrument_oxygen", "make_model", "Aanderaa Optode 4831") #NCEI
+      ncatt_put(ncnew, "instrument_oxygen", "platform", "platform")
+      ncatt_put(ncnew, "instrument_oxygen", "serial_number", oxygen.info$serial_num)
+      ncatt_put(ncnew, "instrument_oxygen", "type", "instrument")
 
 
 
       #----------------------------------------------------
       # Global attributes
-      date.curr <- format(Sys.time(), format = "%Y-%m-%dT%H:%M:%SZ")
+      dt.current <- format(Sys.time(), format = "%Y-%m-%dT%H:%M:%SZ")
       aerd.url <- "https://www.fisheries.noaa.gov/about/antarctic-ecosystem-research-division-southwest-fisheries-science-center"
 
       ncatt_put(ncnew, 0, "Conventions", "CF-1.6, COARDS, ACDD-1.3")
       ncatt_put(ncnew, 0, "Metadata_Conventions", "CF-1.6, COARDS, ACDD-1.3")
       ncatt_put(ncnew, 0, "acknowledgement", "This work supported by funding from NOAA")
-      ncatt_put(ncnew, 0, "comment",
-                paste("These data are part of the U.S. AMLR Program Operation FREEBYRD.",
-                      "FREEBYRD is a long term program to replace ship-based surveys with autonomous vehicles",
-                      "to estimate Antarctic krill biomass in support of the CCAMLR"))
+      ncatt_put(ncnew, 0, "comment", " ")
       ncatt_put(ncnew, 0, "contributor_name", "Christian Reiss, George Watters, Jennifer Walsh, Anthony Cossio, Samuel Woodman")
       ncatt_put(ncnew, 0, "contributor_role", "Principal Investigator, Principal Investigator, Glider Pilot, Glider Pilot, Data Manager")
-      ncatt_put(ncnew, 0, "creator_email", "christian.reiss@noaa.gov")
-      ncatt_put(ncnew, 0, "creator_institution", "Antarctic Ecosystem Research Division")
-      ncatt_put(ncnew, 0, "creator_name", "Christian Reiss")
+      ncatt_put(ncnew, 0, "creator_email", "sam.woodman@noaa.gov")
+      ncatt_put(ncnew, 0, "creator_institution", "NOAA SWFSC Antarctic Ecosystem Research Division")
+      ncatt_put(ncnew, 0, "creator_name", "Samuel Woodman")
       ncatt_put(ncnew, 0, "creator_type", "person")
       ncatt_put(ncnew, 0, "creator_url", aerd.url)
-      ncatt_put(ncnew, 0, "date_created", date.curr)
-      ncatt_put(ncnew, 0, "date_issued", date.curr)
-      ncatt_put(ncnew, 0, "date_modified", date.curr)
+      ncatt_put(ncnew, 0, "date_created", dt.current)
+      ncatt_put(ncnew, 0, "date_issued", dt.current)
+      ncatt_put(ncnew, 0, "date_modified", dt.current)
       ncatt_put(ncnew, 0, "format_version", "IOOS_Glider_NetCDF_v3.0.nc")
       ncatt_put(ncnew, 0, "history",
                 paste("Raw glider data processed using the toolbox at https://github.com/socib/glider_toolbox.\n",
-                      date.curr, "sam.woodman@noaa.gov of NOAA NMFS SWFSC AERD used R package",
-                      "amlrGlider (https://github.com/smwoodman/amlrGlider)",
+                      # "C:\Users\sam.woodman\Documents\R\R-4.0.2\bin\Rscript.exe C:\SMW\ERDDAP\NGDAC\NGDAC_....bat"
+                      dt.current, "sam.woodman@noaa.gov of NOAA NMFS SWFSC AERD used R package amlrGlider",
+                      paste0("v", packageVersion("amlrGlider")), "(https://github.com/smwoodman/amlrGlider)",
                       "to convert the source file to format_version=IOOS_Glider_NetCDF_v3.0.nc"))
       ncatt_put(ncnew, 0, "id", paste0(y.traj, "-delayed"))
-      ncatt_put(ncnew, 0, "institution", "Antarctic Ecosystem Research Division")
-      # ncatt_put(ncnew, 0, "ioos_regional_association", "todo")
+      ncatt_put(ncnew, 0, "institution", "NOAA SWFSC Antarctic Ecosystem Research Division")
       ncatt_put(ncnew, 0, "keywords",
                 paste("AUVS > Autonomous Underwater Vehicles, Earth Science > Oceans > Ocean Pressure > Water Pressure,",
                       "Earth Science > Oceans > Ocean Temperature > Water Temperature,",
@@ -710,7 +720,7 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, 0, "program", "U.S. Antarctic Marine Living Resources Program")
       ncatt_put(ncnew, 0, "project", "FREEBYRD")
       ncatt_put(ncnew, 0, "publisher_email", "christian.reiss@noaa.gov")
-      ncatt_put(ncnew, 0, "publisher_institution", "Antarctic Ecosystem Research Division")
+      ncatt_put(ncnew, 0, "publisher_institution", "NOAA SWFSC Antarctic Ecosystem Research Division")
       ncatt_put(ncnew, 0, "publisher_name", "Christian Reiss")
       ncatt_put(ncnew, 0, "publisher_url", aerd.url)
       ncatt_put(ncnew, 0, "references", " ")
@@ -718,13 +728,14 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
       ncatt_put(ncnew, 0, "source", "Observational data from a profiling glider")
       ncatt_put(ncnew, 0, "standard_name_vocabulary", "CF Standard Name Table v73")
       ncatt_put(ncnew, 0, "summary",
-                paste("These data are part of the U.S. AMLR Program Operation FREEBYRD.",
+                paste("These data are part of the U.S. Antarctic Marine Living Resources (AMLR) Program Operation FREEBYRD.",
                       "FREEBYRD is a long term program to replace ship-based surveys with autonomous vehicles",
-                      "to estimate Antarctic krill biomass in support of the CCAMLR.",
-                      "This delayed dataset contains CTD, oxygen, chlorphyll a, CDOM and optical backscatter measurements."))
+                      "to estimate Antarctic krill biomass in support of the Convention for the",
+                      "Conservation of Antarctic Marine Living Resources (CCAMLR).",
+                      "This delayed dataset contains CTD, oxygen, chlorophyll a, CDOM and optical backscatter measurements."))
       ncatt_put(ncnew, 0, "title", y.traj)
       ncatt_put(ncnew, 0, "wmo_id", wmo.id)
-    }, finally = nc_close(ncnew))
+    }, finally = nc_close(ncnew)) # End of writing ncnew
   } #End of for() loop
 
 
@@ -732,5 +743,6 @@ amlr_ngdac_convert <- function(file.l1, file.l2, file.out.path, glider.name,
   nc_close(x1)
   nc_close(x2)
 
+  message("Generated ", nrow(x2.df), " nc files in ", file.out.path)
   TRUE
 }

@@ -21,14 +21,19 @@ amlr_ngdac_nc_put_qc <- function(ncnew, z.var, z.long, z.standard) {
 
 valid_put_check <- function(ncnew, val, v.min, v.max, v.name, y.traj, def.na = -999) {
   # Add valid_min and valid_max attributes to ncnew for var v.name. Then
-  # Check that values (val) are 1) between valid_min (v.min) and valid_max (v.max)
-  #   or 2) the default NA value (def.na) for variable v.name in file y.traj
+  # Check that values (val) are 1) between valid_min (v.min) and valid_max (v.max),
+  #   2) the default NA value (def.na) for variable v.name in file y.traj,
+  #   or 3) density values of 0
   ncatt_put(ncnew, v.name, "valid_max", v.max)
   ncatt_put(ncnew, v.name, "valid_min", v.min)
 
   val.nona <- na.omit(val)
-  if (!all(dplyr::between(val.nona, v.min, v.max) | val.nona == def.na)) {
-    warning(v.name, " values are not between valid min and max for ", y.traj,
+  val.nona.flag <- dplyr::between(val.nona, v.min, v.max) | val.nona == def.na |
+    val.nona == 0
+  if (!all(val.nona.flag)) {
+    warning(v.name, " values are not between valid min and max for trajectory ", y.traj, "\n",
+            paste("Range of invalid values:",
+                  paste(range(val.nona[!val.nona.flag], na.rm = TRUE), collapse = " to ")),
             immediate. = TRUE)
   }
 }
