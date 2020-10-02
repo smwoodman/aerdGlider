@@ -18,13 +18,13 @@ Default is \code{TRUE}}
 \value{
 A named list of 1) the minimum value for the 'time' variable (with \code{NA}s removed) and
 2) a data frame with 'lat' and 'lon' columns that contains the first \code{n} rows
-of latitude and longitude values, respecitvely, from \code{file.l1.}.
+of latitude and longitude values, respectively, from \code{file.l1.}.
 The names of these elements are 'deployment_time' and 'deployment_position', respectively.
 If \code{na.start.skip} is \code{TRUE}, then front rows
 with \code{NA} lat or lon values are removed before returning the first \code{n} rows.
 See Details for a description of 'front'
 
-A warning is printed if any of the printed coordiantes are not
+A warning is printed if any of the printed coordinates are not
 south of 58 deg S and between 70 deg W and 50 deg W.
 }
 \description{
